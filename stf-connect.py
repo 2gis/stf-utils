@@ -22,12 +22,12 @@ add_device_path = "/user/"
 
 
 def exit_gracefully(signum, frame):
-    delete_all_devices(API_URL, OAUTH_TOKEN)
+    delete_all(API_URL, OAUTH_TOKEN)
     sys.exit(0)
 
 
-def get_available_devices(api_url, oauth_token):
-    url = "{0}{1}".format(api_url, devices_path)
+def get_available(api_url, oauth_token):
+    url = "{0}/devices".format(api_url)
     resp = requests.get(
         url,
         headers={
@@ -45,8 +45,8 @@ def get_available_devices(api_url, oauth_token):
         raise requests.RequestException
 
 
-def get_owned_devices(api_url, oauth_token):
-    url = "{0}{1}".format(api_url, user_devices_path)
+def get_owned(api_url, oauth_token):
+    url = "{0}/user/devices".format(api_url)
     resp = requests.get(
         url,
         headers={
@@ -60,9 +60,9 @@ def get_owned_devices(api_url, oauth_token):
         raise requests.RequestException
 
 
-def add_all_devices(api_url, oauth_token):
-    device_list = get_available_devices(api_url, oauth_token)
-    url = "{0}{1}".format(api_url, user_devices_path)
+def add_all(api_url, oauth_token):
+    device_list = get_available(api_url, oauth_token)
+    url = "{0}/user/devices".format(api_url)
     for device in device_list:
         device_serial = device.get("serial")
         log.info("Adding device {0}".format(device_serial))
@@ -83,11 +83,11 @@ def add_all_devices(api_url, oauth_token):
             raise requests.RequestException
 
 
-def delete_all_devices(api_url, oauth_token):
-    device_list = get_owned_devices(api_url, oauth_token)
+def delete_all(api_url, oauth_token):
+    device_list = get_owned(api_url, oauth_token)
     for device in device_list:
         device_serial = device.get("serial")
-        url = "{0}{1}/{2}".format(api_url, user_devices_path, device_serial)
+        url = "{0}/user/devices/{1}".format(api_url, device_serial)
         log.info("Deleting device {0}".format(device_serial))
         resp = requests.delete(
             url,
@@ -102,9 +102,32 @@ def delete_all_devices(api_url, oauth_token):
             log.error(resp.text)
             raise requests.RequestException
 
+
+def connect_to_all(api_url, oauth_token):
+    add_all(api_url, oauth_token)
+    device_list = get_owned(api_url, oauth_token)
+    for device in device_list:
+        device_serial = device.get("serial")
+        url = "{0}/user/devices/{1}/remoteConnect".format(api_url, device_serial)
+        log.info("Connecting to device {0}".format(device_serial))
+        resp = requests.post(
+            url,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer {0}".format(oauth_token)
+            }
+        )
+        if resp.status_code == 200:
+            adb_connect_url = resp.json().get("remoteConnectUrl")
+
+        else:
+            log.error(resp.text)
+            raise requests.RequestException
+
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, exit_gracefully)
     signal.signal(signal.SIGTERM, exit_gracefully)
-    add_all_devices(API_URL, OAUTH_TOKEN)
+    add_all(API_URL, OAUTH_TOKEN)
+    connect_to_all(API_URL, OAUTH_TOKEN)
     while True:
         sleep(100)
