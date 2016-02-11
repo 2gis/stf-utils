@@ -1,8 +1,11 @@
-from json import dumps, loads
-from time import sleep
+import sys
+import signal
 import logging
 import requests
-import signal
+
+from json import dumps, loads
+from time import sleep
+
 
 log = logging.getLogger(__name__)
 logging.basicConfig(
@@ -18,13 +21,9 @@ user_devices_path = "/user/devices"
 add_device_path = "/user/"
 
 
-def sigint_handler(signum, frame):
-    exit_gracefully()
-
-
-def exit_gracefully():
+def exit_gracefully(signum, frame):
     delete_all_devices(API_URL, OAUTH_TOKEN)
-    exit(0)
+    sys.exit(0)
 
 
 def get_available_devices(api_url, oauth_token):
@@ -104,7 +103,8 @@ def delete_all_devices(api_url, oauth_token):
             raise requests.RequestException
 
 if __name__ == '__main__':
-    signal.signal(signal.SIGINT, sigint_handler)
+    signal.signal(signal.SIGINT, exit_gracefully)
+    signal.signal(signal.SIGTERM, exit_gracefully)
     add_all_devices(API_URL, OAUTH_TOKEN)
     while True:
         sleep(100)
