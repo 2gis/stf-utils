@@ -18,10 +18,6 @@ logging.basicConfig(
 API_URL = "http://stf.auto.ostack.test/api/v1"
 OAUTH_TOKEN = "e1cb89b5108348dd9251b7848948084809dad3a2e1084d8ebc4bf6663381d56e"
 
-devices_path = "/devices"
-user_devices_path = "/user/devices"
-add_device_path = "/user/"
-
 
 def exit_gracefully(signum, frame):
     delete_all(API_URL, OAUTH_TOKEN)
