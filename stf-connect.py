@@ -1,9 +1,14 @@
 from json import dumps, loads
+from time import sleep
 import logging
 import requests
+import signal
 
 log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s %(message)s'
+)
 
 API_URL = "http://stf.auto.ostack.test/api/v1"
 OAUTH_TOKEN = "e1cb89b5108348dd9251b7848948084809dad3a2e1084d8ebc4bf6663381d56e"
@@ -11,6 +16,15 @@ OAUTH_TOKEN = "e1cb89b5108348dd9251b7848948084809dad3a2e1084d8ebc4bf6663381d56e"
 devices_path = "/devices"
 user_devices_path = "/user/devices"
 add_device_path = "/user/"
+
+
+def sigint_handler(signum, frame):
+    exit_gracefully()
+
+
+def exit_gracefully():
+    delete_all_devices(API_URL, OAUTH_TOKEN)
+    exit(0)
 
 
 def get_available_devices(api_url, oauth_token):
@@ -25,7 +39,11 @@ def get_available_devices(api_url, oauth_token):
     for device in resp.json().get("devices"):
         if device.get("present") and not device.get("owner"):
             device_list.append(device)
-    return device_list
+    if resp.status_code == 200:
+        return device_list
+    else:
+        log.error(resp)
+        raise requests.RequestException
 
 
 def get_owned_devices(api_url, oauth_token):
@@ -36,7 +54,11 @@ def get_owned_devices(api_url, oauth_token):
             "Authorization": "Bearer {0}".format(oauth_token)
         }
     )
-    return resp.json().get("devices")
+    if resp.status_code == 200:
+        return resp.json().get("devices")
+    else:
+        log.error(resp)
+        raise requests.RequestException
 
 
 def add_all_devices(api_url, oauth_token):
@@ -44,6 +66,7 @@ def add_all_devices(api_url, oauth_token):
     url = "{0}{1}".format(api_url, user_devices_path)
     for device in device_list:
         device_serial = device.get("serial")
+        log.info("Adding device {0}".format(device_serial))
         resp = requests.post(
             url,
             data=dumps({
@@ -54,7 +77,11 @@ def add_all_devices(api_url, oauth_token):
                 "Authorization": "Bearer {0}".format(oauth_token)
             }
         )
-        log.info(loads(resp.text).get("description"))
+        if resp.status_code == 200:
+            log.info(loads(resp.text).get("description"))
+        else:
+            log.error(resp.text)
+            raise requests.RequestException
 
 
 def delete_all_devices(api_url, oauth_token):
@@ -62,6 +89,7 @@ def delete_all_devices(api_url, oauth_token):
     for device in device_list:
         device_serial = device.get("serial")
         url = "{0}{1}/{2}".format(api_url, user_devices_path, device_serial)
+        log.info("Deleting device {0}".format(device_serial))
         resp = requests.delete(
             url,
             headers={
@@ -69,7 +97,14 @@ def delete_all_devices(api_url, oauth_token):
                 "Authorization": "Bearer {0}".format(oauth_token)
             }
         )
-        log.info(loads(resp.text).get("description"))
+        if resp.status_code == 200:
+            log.info(loads(resp.text).get("description"))
+        else:
+            log.error(resp.text)
+            raise requests.RequestException
 
-add_all_devices(API_URL, OAUTH_TOKEN)
-delete_all_devices(API_URL, OAUTH_TOKEN)
+if __name__ == '__main__':
+    signal.signal(signal.SIGINT, sigint_handler)
+    add_all_devices(API_URL, OAUTH_TOKEN)
+    while True:
+        sleep(100)
