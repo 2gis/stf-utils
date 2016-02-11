@@ -1,7 +1,9 @@
+import os
 import sys
 import signal
 import logging
 import requests
+import subprocess
 
 from json import dumps, loads
 from time import sleep
@@ -119,7 +121,13 @@ def connect_to_all(api_url, oauth_token):
         )
         if resp.status_code == 200:
             adb_connect_url = resp.json().get("remoteConnectUrl")
-
+            command = ["adb", "connect", adb_connect_url]
+            subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=os.environ.copy()
+            )
         else:
             log.error(resp.text)
             raise requests.RequestException
@@ -127,7 +135,6 @@ def connect_to_all(api_url, oauth_token):
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, exit_gracefully)
     signal.signal(signal.SIGTERM, exit_gracefully)
-    add_all(API_URL, OAUTH_TOKEN)
     connect_to_all(API_URL, OAUTH_TOKEN)
     while True:
         sleep(100)
