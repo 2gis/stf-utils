@@ -22,8 +22,7 @@ def get_available_devices(api_url, oauth_token):
         }
     )
     device_list = []
-    resp.json()
-    for device in resp.json():
+    for device in resp.json().get("devices"):
         if device.get("present") and not device.get("owner"):
             device_list.append(device)
     return device_list
