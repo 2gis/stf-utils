@@ -20,6 +20,7 @@ OAUTH_TOKEN = "e1cb89b5108348dd9251b7848948084809dad3a2e1084d8ebc4bf6663381d56e"
 
 
 def exit_gracefully(signum, frame):
+    disconnect_all(API_URL, OAUTH_TOKEN)
     delete_all(API_URL, OAUTH_TOKEN)
     sys.exit(0)
 
@@ -101,13 +102,12 @@ def delete_all(api_url, oauth_token):
             raise requests.RequestException
 
 
-def connect_to_all(api_url, oauth_token):
-    add_all(api_url, oauth_token)
+def connect_all(api_url, oauth_token):
     device_list = get_owned(api_url, oauth_token)
     for device in device_list:
         device_serial = device.get("serial")
         url = "{0}/user/devices/{1}/remoteConnect".format(api_url, device_serial)
-        log.info("Connecting to device {0}".format(device_serial))
+        log.info("Connecting device {0}".format(device_serial))
         resp = requests.post(
             url,
             headers={
@@ -128,9 +128,31 @@ def connect_to_all(api_url, oauth_token):
             log.error(resp.text)
             raise requests.RequestException
 
+
+def disconnect_all(api_url, oauth_token):
+    device_list = get_owned(api_url, oauth_token)
+    for device in device_list:
+        device_serial = device.get("serial")
+        url = "{0}/user/devices/{1}/remoteConnect".format(api_url, device_serial)
+        log.info("Disconnecting device {0}".format(device_serial))
+        resp = requests.delete(
+            url,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer {0}".format(oauth_token)
+            }
+        )
+        if resp.status_code == 200:
+            log.info(loads(resp.text).get("description"))
+        else:
+            log.error(resp.text)
+            raise requests.RequestException
+
+
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, exit_gracefully)
     signal.signal(signal.SIGTERM, exit_gracefully)
-    connect_to_all(API_URL, OAUTH_TOKEN)
+    add_all(API_URL, OAUTH_TOKEN)
+    connect_all(API_URL, OAUTH_TOKEN)
     while True:
         sleep(100)
