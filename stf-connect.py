@@ -1,11 +1,10 @@
 import os
 import sys
+import json
 import signal
 import logging
 import requests
 import subprocess
-
-from json import dumps, loads
 from time import sleep
 
 
@@ -20,7 +19,7 @@ OAUTH_TOKEN = "e1cb89b5108348dd9251b7848948084809dad3a2e1084d8ebc4bf6663381d56e"
 
 
 def exit_gracefully(signum, frame):
-    disconnect_all(API_URL, OAUTH_TOKEN)
+    disconnect_owned(API_URL, OAUTH_TOKEN)
     delete_all(API_URL, OAUTH_TOKEN)
     sys.exit(0)
 
@@ -64,7 +63,7 @@ def add_by_serial(api_url, oauth_token, serial):
     log.info("Adding device {0}".format(serial))
     resp = requests.post(
         url,
-        data=dumps({
+        data=json.dumps({
             "serial": "{0}".format(serial)
         }).encode("utf-8"),
         headers={
@@ -73,17 +72,22 @@ def add_by_serial(api_url, oauth_token, serial):
         }
     )
     if resp.status_code == 200:
-        log.info(loads(resp.text).get("description"))
+        log.info(json.loads(resp.text).get("description"))
     else:
         log.error(resp.text)
         raise requests.RequestException
 
 
-def add_all(api_url, oauth_token):
+def add_all(api_url, oauth_token, device_criteria):
     device_list = get_available(api_url, oauth_token)
+    # devices_needed = device_criteria.get("quantity")
     for device in device_list:
-        device_serial = device.get("serial")
-        add_by_serial(api_url, oauth_token, device_serial)
+        for criterion in device_criteria:
+            wanted = device_criteria.get(criterion)
+            actual = device.get(criterion)
+            if actual is not None and wanted != "ANY" and actual == wanted:
+                device_serial = device.get("serial")
+                add_by_serial(api_url, oauth_token, device_serial)
 
 
 def delete_by_serial(api_url, oauth_token, serial):
@@ -97,7 +101,7 @@ def delete_by_serial(api_url, oauth_token, serial):
         }
     )
     if resp.status_code == 200:
-        log.info(loads(resp.text).get("description"))
+        log.info(json.loads(resp.text).get("description"))
     else:
         log.error(resp.text)
         raise requests.RequestException
@@ -151,7 +155,7 @@ def disconnect_owned(api_url, oauth_token):
             }
         )
         if resp.status_code == 200:
-            log.info(loads(resp.text).get("description"))
+            log.info(json.loads(resp.text).get("description"))
         else:
             log.error(resp.text)
             raise requests.RequestException
@@ -160,7 +164,9 @@ def disconnect_owned(api_url, oauth_token):
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, exit_gracefully)
     signal.signal(signal.SIGTERM, exit_gracefully)
-    add_all(API_URL, OAUTH_TOKEN)
-    connect_all(API_URL, OAUTH_TOKEN)
+    with open('config.json') as json_config_file:
+        criteria = json.load(json_config_file)
+    add_all(API_URL, OAUTH_TOKEN, criteria)
+    connect_owned(API_URL, OAUTH_TOKEN)
     while True:
         sleep(100)
