@@ -59,50 +59,58 @@ def get_owned(api_url, oauth_token):
         raise requests.RequestException
 
 
+def add_by_serial(api_url, oauth_token, serial):
+    url = "{0}/user/devices".format(api_url)
+    log.info("Adding device {0}".format(serial))
+    resp = requests.post(
+        url,
+        data=dumps({
+            "serial": "{0}".format(serial)
+        }).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {0}".format(oauth_token)
+        }
+    )
+    if resp.status_code == 200:
+        log.info(loads(resp.text).get("description"))
+    else:
+        log.error(resp.text)
+        raise requests.RequestException
+
+
 def add_all(api_url, oauth_token):
     device_list = get_available(api_url, oauth_token)
-    url = "{0}/user/devices".format(api_url)
     for device in device_list:
         device_serial = device.get("serial")
-        log.info("Adding device {0}".format(device_serial))
-        resp = requests.post(
-            url,
-            data=dumps({
-                "serial": "{0}".format(device_serial)
-            }).encode("utf-8"),
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": "Bearer {0}".format(oauth_token)
-            }
-        )
-        if resp.status_code == 200:
-            log.info(loads(resp.text).get("description"))
-        else:
-            log.error(resp.text)
-            raise requests.RequestException
+        add_by_serial(api_url, oauth_token, device_serial)
+
+
+def delete_by_serial(api_url, oauth_token, serial):
+    url = "{0}/user/devices/{1}".format(api_url, serial)
+    log.info("Deleting device {0}".format(serial))
+    resp = requests.delete(
+        url,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {0}".format(oauth_token)
+        }
+    )
+    if resp.status_code == 200:
+        log.info(loads(resp.text).get("description"))
+    else:
+        log.error(resp.text)
+        raise requests.RequestException
 
 
 def delete_all(api_url, oauth_token):
     device_list = get_owned(api_url, oauth_token)
     for device in device_list:
         device_serial = device.get("serial")
-        url = "{0}/user/devices/{1}".format(api_url, device_serial)
-        log.info("Deleting device {0}".format(device_serial))
-        resp = requests.delete(
-            url,
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": "Bearer {0}".format(oauth_token)
-            }
-        )
-        if resp.status_code == 200:
-            log.info(loads(resp.text).get("description"))
-        else:
-            log.error(resp.text)
-            raise requests.RequestException
+        delete_by_serial(api_url, oauth_token, device_serial)
 
 
-def connect_all(api_url, oauth_token):
+def connect_owned(api_url, oauth_token):
     device_list = get_owned(api_url, oauth_token)
     for device in device_list:
         device_serial = device.get("serial")
@@ -129,7 +137,7 @@ def connect_all(api_url, oauth_token):
             raise requests.RequestException
 
 
-def disconnect_all(api_url, oauth_token):
+def disconnect_owned(api_url, oauth_token):
     device_list = get_owned(api_url, oauth_token)
     for device in device_list:
         device_serial = device.get("serial")
