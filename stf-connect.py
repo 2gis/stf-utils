@@ -80,14 +80,17 @@ def add_by_serial(api_url, oauth_token, serial):
 
 def add_all(api_url, oauth_token, device_criteria):
     device_list = get_available(api_url, oauth_token)
-    # devices_needed = device_criteria.get("quantity")
     for device in device_list:
+        device_matches = True
         for criterion in device_criteria:
             wanted = device_criteria.get(criterion)
             actual = device.get(criterion)
-            if actual is not None and wanted != "ANY" and actual == wanted:
-                device_serial = device.get("serial")
-                add_by_serial(api_url, oauth_token, device_serial)
+            if actual is not None and wanted != "ANY":
+                if actual != wanted:
+                    device_matches = False
+        if device_matches:
+            device_serial = device.get("serial")
+            add_by_serial(api_url, oauth_token, device_serial)
 
 
 def delete_by_serial(api_url, oauth_token, serial):
