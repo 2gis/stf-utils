@@ -13,8 +13,8 @@ When killed, releases all binded devices and closes all adb connections.
 
 #### usage:
 ```
-python stf-connect.py &
+python connector.py &
 adb devices
 kill $!
 ```
-> hint: `stfapi.py` `client.py` and `connector.py` are still under development
+
