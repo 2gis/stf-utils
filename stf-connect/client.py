@@ -3,8 +3,8 @@ from stfapi import SmartphoneTestingFarmAPI
 
 class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
     def __init__(self, *args, **kwargs):
-        super(SmartphoneTestingFarmClient, self).__init__(self, *args, **kwargs)
-        self.devices = []
+        super(SmartphoneTestingFarmClient, self).__init__(*args, **kwargs)
+        self.devices = [{"serial": "emulator-5554"}]
 
     def add_devices(self, device_spec):
         for device in self.devices:

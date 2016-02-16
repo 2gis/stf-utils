@@ -10,7 +10,7 @@ def bind_method(**config):
     class SmartphoneTestingFarmAPIMethod(object):
         path = config['path']
         method = config.get('method', 'GET')
-        response_type = config.get("response_type", "list")
+        accepts_parameters = config.get("accepts_parameters", [])
         headers = config.get("headers")
 
         def __init__(self, api, *args, **kwargs):
@@ -24,7 +24,7 @@ def bind_method(**config):
                 if value is None:
                     continue
                 try:
-                    self.parameters[index] = value
+                    self.parameters[self.accepts_parameters[index]] = value
                 except IndexError:
                     raise Exception("Too many arguments supplied")
 
@@ -113,7 +113,8 @@ class SmartphoneTestingFarmAPI(object):
         path="/user/devices",
         headers={
             "Content-Type": "application/json"
-        }
+        },
+        accepts_parameters=["serial"]
     )
 
     delete_device = bind_method(
