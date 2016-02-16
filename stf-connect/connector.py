@@ -1,7 +1,7 @@
 import sys
 import time
 import signal
-import stfapi
+import client
 
 
 def exit_gracefully(signum, frame):
@@ -12,7 +12,7 @@ def exit_gracefully(signum, frame):
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, exit_gracefully)
     signal.signal(signal.SIGTERM, exit_gracefully)
-    stf = stfapi.SmartphoneTestingFarmAPI(
+    stf = client.SmartphoneTestingFarmClient(
         host="http://stf.auto.ostack.test",
         common_api_path="/api/v1",
         oauth_token="e1cb89b5108348dd9251b7848948084809dad3a2e1084d8ebc4bf6663381d56e",

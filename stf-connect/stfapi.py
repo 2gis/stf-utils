@@ -17,8 +17,6 @@ def bind_method(**config):
             self.api = api
             self.parameters = {}
             self._build_parameters(args, kwargs)
-            print("args: {0}, kwargs: {1}".format(args, kwargs))
-            print("parameters: {0}".format(self.parameters))
             self._build_path()
 
         def _build_parameters(self, args, kwargs):
@@ -55,14 +53,26 @@ def bind_method(**config):
                 auth_header.update(self.headers)
             return auth_header
 
+        def _prepare_request(self):
+            method = self.method
+            url = "{0}{1}".format(self.api.api_url, self.path)
+            headers = {
+                "Authorization": "Bearer {0}".format(self.api.oauth_token)
+            }
+            if self.headers is not None:
+                headers.update(self.headers)
+            data = json.dumps(self.parameters)
+            return method, url, headers, data
+
         def execute(self):
-            # headers, data = self._prepare_request()
-            print("exec. params: {0}".format(self.parameters))
-            print("exec. headers: {0}".format(self._prepare_headers()))
-            print("url: {0}".format(self.api.api_url + self.path))
-            print("method: {0}".format(self.method))
-            response = requests.request(method=self.method, url=self.api.api_url + self.path, headers=self._prepare_headers(), data=json.dumps(self.parameters).encode("utf-8"))
-            print(response.status_code)
+            method, url, headers, data = self._prepare_request()
+            response = requests.request(
+                method=method,
+                url=url,
+                headers=headers,
+                data=data
+            )
+            return response
 
     def _call(api, *args, **kwargs):
         method = SmartphoneTestingFarmAPIMethod(api, *args, **kwargs)
@@ -72,31 +82,30 @@ def bind_method(**config):
 
 
 class SmartphoneTestingFarmAPI(object):
+    """
+    Bindings for OpenSTF API:
+    https://github.com/openstf/stf/blob/2.0.0/doc/API.md
+    """
     def __init__(self, host, common_api_path, oauth_token):
         self.host = host
         self.common_api_path = common_api_path
         self.oauth_token = oauth_token
         self.api_url = "{0}{1}".format(self.host, self.common_api_path)
-        self.devices = [
-            {
-                "serial": "emulator-5554"
-            }
-        ]
 
-    def add_devices(self, device_spec):
-        for device in self.devices:
-            self.add_device(serial=device.get("serial"))
+    get_all_devices = bind_method(
+        path="/devices"
+    )
 
-    def connect_to_mine(self):
-        pass
+    get_device = bind_method(
+        path="/devices/{serial}"
+    )
 
-    def close_all(self):
-        for device in self.devices:
-            self.delete_device(serial=device.get("serial"))
+    get_user_info = bind_method(
+        path="/user"
+    )
 
-    delete_device = bind_method(
-        method="delete",
-        path="/user/devices/{serial}"
+    get_my_devices = bind_method(
+        path="/user/devices"
     )
 
     add_device = bind_method(
@@ -105,4 +114,22 @@ class SmartphoneTestingFarmAPI(object):
         headers={
             "Content-Type": "application/json"
         }
+    )
+
+    delete_device = bind_method(
+        method="delete",
+        path="/user/devices/{serial}"
+    )
+
+    remote_connect = bind_method(
+        method="post",
+        path="/user/devices/{serial}/remoteConnect",
+        headers={
+            "Content-Type": "application/json"
+        }
+    )
+
+    remote_disconnect = bind_method(
+        method="delete",
+        path="/user/devices/{serial}/remoteConnect"
     )
