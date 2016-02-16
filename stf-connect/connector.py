@@ -2,6 +2,7 @@ import sys
 import time
 import signal
 import client
+import json
 
 
 def exit_gracefully(signum, frame):
@@ -17,7 +18,9 @@ if __name__ == '__main__':
         common_api_path="/api/v1",
         oauth_token="e1cb89b5108348dd9251b7848948084809dad3a2e1084d8ebc4bf6663381d56e",
     )
-    stf.add_devices(device_spec="spec.json")
+    with open("spec.json") as f:
+        device_spec = json.load(f)
+    stf.add_devices(device_spec=device_spec)
     stf.connect_to_mine()
     while True:
         time.sleep(100)
