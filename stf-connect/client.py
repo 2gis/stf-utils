@@ -1,8 +1,9 @@
-from stfapi import SmartphoneTestingFarmAPI
 import six
+import stfapi
+import adb
 
 
-class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
+class SmartphoneTestingFarmClient(stfapi.SmartphoneTestingFarmAPI):
     def __init__(self, *args, **kwargs):
         super(SmartphoneTestingFarmClient, self).__init__(*args, **kwargs)
 
@@ -16,7 +17,11 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
             self.add_device(serial=device.get("serial"))
 
     def connect_to_mine(self):
-        pass
+        for device in self._get_my_devices():
+            resp = self.remote_connect(serial=device.get("serial"))
+            content = resp.json()
+            remote_connect_url = content.get("remoteConnectUrl")
+            adb.connect(remote_connect_url)
 
     def close_all(self):
         self.delete_all()
