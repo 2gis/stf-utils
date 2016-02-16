@@ -17,3 +17,4 @@ python stf-connect.py &
 adb devices
 kill $!
 ```
+> hint: `stfapi.py` and `connector.py` are still under development
