@@ -2,25 +2,25 @@
     {
         "group_name": "alfa",
         "amount": "10",
-        "priority": "0",
-        "abi": "x86",
-        "model": "ANY",
         "min_sdk": "19",
-        "max_sdk": "25",
-        "platform": "Android",
-        "serial": "ANY",
-        "manufacturer": "ANY"
+        "max_sdk": "23",
+        "specs": {
+            "abi": "x86",
+            "model": "ANY",
+            "platform": "Android",
+            "serial": "ANY",
+            "manufacturer": "ANY"
+        }
     },
     {
         "group_name": "beta",
         "amount": "3",
-        "abi": "x86",
-        "model": "ANY",
-        "min_sdk": "22",
-        "max_sdk": "25",
-        "platform": "Android",
-        "serial": "",
-        "manufacturer": "ANY"
+        "specs": {
+            "abi": "armeabi-v7a",
+            "model": "ANY",
+            "platform": "Android",
+            "manufacturer": "ANY"
+        }
     }
 ]
 
