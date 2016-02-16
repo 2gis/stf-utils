@@ -17,4 +17,8 @@ python connector.py &
 adb devices
 kill $!
 ```
-
+#### todo:
+* "amount" feature
+* "min/max sdk" feature
+* exception handling
+* logging
