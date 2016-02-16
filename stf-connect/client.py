@@ -23,13 +23,13 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         self.disconnect_all()
 
     def delete_all(self):
-        all_devices = self._get_all_devices()
-        for device in all_devices:
+        my_devices = self._get_my_devices()
+        for device in my_devices:
             self.delete_device(serial=device.get("serial"))
 
     def disconnect_all(self):
-        all_devices = self._get_all_devices()
-        for device in all_devices:
+        my_devices = self._get_my_devices()
+        for device in my_devices:
             self.remote_disconnect(serial=device.get("serial"))
 
     def _get_all_devices(self):
@@ -37,9 +37,21 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         content = resp.json()
         return content.get("devices")
 
+    def _get_my_devices(self):
+        resp = self.get_my_devices()
+        content = resp.json()
+        return content.get("devices")
+
+    def _get_available_devices(self):
+        available_devices = []
+        for device in self._get_all_devices():
+            if device.get("present") and not device.get("owner"):
+                available_devices.append(device)
+        return available_devices
+
     def _get_appropriate_devices(self, device_spec):
         appropriate_devices = []
-        all_devices = self._get_all_devices()
+        all_devices = self._get_available_devices()
         for actual_device in all_devices:
             for wanted_device_group in device_spec:
                 actual_device_is_approriate = True

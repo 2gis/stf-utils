@@ -3,6 +3,12 @@ import time
 import signal
 import client
 import json
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s %(message)s'
+)
 
 
 def exit_gracefully(signum, frame):
