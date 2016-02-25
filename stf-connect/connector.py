@@ -34,6 +34,9 @@ if __name__ == '__main__':
     with open(DEVICE_SPEC) as f:
         device_spec = json.load(f)
     stf.add_devices(device_spec=device_spec)
-    stf.connect_to_mine()
+    try:
+        stf.connect_to_mine()
+    except:
+        exit_gracefully()
     while True:
         time.sleep(100)
