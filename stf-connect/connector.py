@@ -4,13 +4,13 @@ import signal
 import client
 import json
 import logging
-import configparser
+from six.moves import configparser
 
 config = configparser.ConfigParser()
 config.read("config.ini")
-HOST = config["main"]["host"]
-OAUTH_TOKEN = config["main"]["oauth_token"]
-DEVICE_SPEC = config["main"]["device_spec"]
+HOST = config.get("main", "host")
+OAUTH_TOKEN = config.get("main", "oauth_token")
+DEVICE_SPEC = config.get("main", "device_spec")
 
 logging.basicConfig(
     level=logging.DEBUG,
