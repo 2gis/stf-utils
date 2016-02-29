@@ -53,15 +53,18 @@ class SmartphoneTestingFarmClient(stfapi.SmartphoneTestingFarmAPI):
     def _get_appropriate_devices(self, device_spec):
         appropriate_devices = []
         all_devices = self._get_available_devices()
-        for actual_device in all_devices:
-            for wanted_device_group in device_spec:
-                actual_device_is_appropriate = True
-                wanted_device_specs = wanted_device_group.get("specs")
-                for key, value in six.iteritems(wanted_device_specs):
-                    if value not in {actual_device.get(key), "ANY"}:
-                        actual_device_is_appropriate = False
-                        break
-                if actual_device_is_appropriate:
-                    appropriate_devices.append(actual_device)
+        for wanted_device_group in device_spec:
+            number_of_devices_to_add = wanted_device_group.get("amount")
+            wanted_device_specs = wanted_device_group.get("specs")
+            for device in all_devices:
+                if number_of_devices_to_add == 0:
                     break
+                device_is_appropriate = True
+                for key, value in six.iteritems(wanted_device_specs):
+                    if value not in {device.get(key), "ANY"}:
+                        device_is_appropriate = False
+                        break
+                if device_is_appropriate:
+                    number_of_devices_to_add -= 1
+                    appropriate_devices.append(device)
         return appropriate_devices
