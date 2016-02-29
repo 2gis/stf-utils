@@ -35,7 +35,7 @@ if __name__ == '__main__':
         device_spec = json.load(f)
     stf.add_devices(device_spec=device_spec)
     try:
-        stf.connect_to_mine()
+        stf.connect_mine()
     except Exception as e:
         stf.close_all()
         raise e

@@ -6,44 +6,40 @@ import adb
 class SmartphoneTestingFarmClient(stfapi.SmartphoneTestingFarmAPI):
     def __init__(self, *args, **kwargs):
         super(SmartphoneTestingFarmClient, self).__init__(*args, **kwargs)
+        self.session_devices = []
 
     def connect_devices(self, device_spec):
         self.add_devices(device_spec)
-        self.connect_to_mine()
+        self.connect_mine()
 
     def add_devices(self, device_spec):
         devices_to_add = self._get_appropriate_devices(device_spec)
         for device in devices_to_add:
             self.add_device(serial=device.get("serial"))
+            self.session_devices.append(device)
 
-    def connect_to_mine(self):
-        for device in self._get_my_devices():
+    def connect_mine(self):
+        for device in self.session_devices:
             resp = self.remote_connect(serial=device.get("serial"))
             content = resp.json()
             remote_connect_url = content.get("remoteConnectUrl")
             adb.connect(remote_connect_url)
 
     def close_all(self):
-        self.delete_all()
-        self.disconnect_all()
+        self.disconnect_mine()
+        self.delete_mine()
 
-    def delete_all(self):
-        my_devices = self._get_my_devices()
-        for device in my_devices:
+    def delete_mine(self):
+        while self.session_devices:
+            device = self.session_devices.pop()
             self.delete_device(serial=device.get("serial"))
 
-    def disconnect_all(self):
-        my_devices = self._get_my_devices()
-        for device in my_devices:
+    def disconnect_mine(self):
+        for device in self.session_devices:
             self.remote_disconnect(serial=device.get("serial"))
 
     def _get_all_devices(self):
         resp = self.get_all_devices()
-        content = resp.json()
-        return content.get("devices")
-
-    def _get_my_devices(self):
-        resp = self.get_my_devices()
         content = resp.json()
         return content.get("devices")
 
@@ -59,13 +55,13 @@ class SmartphoneTestingFarmClient(stfapi.SmartphoneTestingFarmAPI):
         all_devices = self._get_available_devices()
         for actual_device in all_devices:
             for wanted_device_group in device_spec:
-                actual_device_is_approriate = True
+                actual_device_is_appropriate = True
                 wanted_device_specs = wanted_device_group.get("specs")
                 for key, value in six.iteritems(wanted_device_specs):
                     if value not in {actual_device.get(key), "ANY"}:
-                        actual_device_is_approriate = False
+                        actual_device_is_appropriate = False
                         break
-                if actual_device_is_approriate:
+                if actual_device_is_appropriate:
                     appropriate_devices.append(actual_device)
                     break
         return appropriate_devices
