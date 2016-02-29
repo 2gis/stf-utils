@@ -54,7 +54,7 @@ class SmartphoneTestingFarmClient(stfapi.SmartphoneTestingFarmAPI):
         appropriate_devices = []
         all_devices = self._get_available_devices()
         for wanted_device_group in device_spec:
-            number_of_devices_to_add = wanted_device_group.get("amount")
+            number_of_devices_to_add = int(wanted_device_group.get("amount"))
             wanted_device_specs = wanted_device_group.get("specs")
             for device in all_devices:
                 if number_of_devices_to_add == 0:
