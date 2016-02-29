@@ -36,7 +36,8 @@ if __name__ == '__main__':
     stf.add_devices(device_spec=device_spec)
     try:
         stf.connect_to_mine()
-    except:
-        exit_gracefully()
+    except Exception as e:
+        stf.close_all()
+        raise e
     while True:
         time.sleep(100)
