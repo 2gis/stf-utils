@@ -19,6 +19,8 @@ logging.basicConfig(
 
 
 def exit_gracefully(signum, frame):
+    poll_thread.stop()
+    poll_thread.join()
     stf.close_all()
     sys.exit(0)
 
@@ -39,5 +41,7 @@ if __name__ == '__main__':
     except Exception as e:
         stf.close_all()
         raise e
+    poll_thread = client.SmartphoneTestingFarmPoll(stf)
+    poll_thread.start()
     while True:
         time.sleep(100)

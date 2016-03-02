@@ -20,13 +20,16 @@ class SmartphoneTestingFarmClient(stfapi.SmartphoneTestingFarmAPI):
                     "connected_devices": []
                 }
             )
+        self.all_devices_are_connected = False
 
     def connect_devices(self):
         available_devices = self._get_available_devices()
+        self.all_devices_are_connected = True
         for device_group in self.device_groups:
             wanted_amount = int(device_group.get("wanted_amount"))
             actual_amount = len(device_group.get("connected_devices"))
             if actual_amount < wanted_amount:
+                self.all_devices_are_connected = False
                 appropriate_devices = self._filter_devices(available_devices, device_group.get("specs"))
                 devices_to_connect = appropriate_devices[:wanted_amount - actual_amount]
                 self._add_devices_to_group(devices_to_connect, device_group)
@@ -87,26 +90,27 @@ class SmartphoneTestingFarmClient(stfapi.SmartphoneTestingFarmAPI):
         return filtered_devices
 
 
-# class SmartphoneTestingFarmPoll(threading.Thread):
-#     def __init__(self, stf_client, device_spec, poll_period=3):
-#         self.stf_client = stf_client
-#         self.device_spec = device_spec
-#         self.poll_period = poll_period
-#         super(SmartphoneTestingFarmPoll, self).__init__()
-#
-#     def run(self):
-#         while True:
-#
-#             time.sleep(self.poll_period)
-#
-#
-# myThread = SmartphoneTestingFarmPoll(stf, device_spec)
-# myThread.start()
-#
-# [
-#     {
-#         "group_name": "alfa",
-#         "amount": "7",
-#         "serials": ["emulator-5554"]
-#     }
-# ]
+class SmartphoneTestingFarmPoll(threading.Thread):
+    def __init__(self, stf_client, poll_period=3):
+        super(SmartphoneTestingFarmPoll, self).__init__()
+        self._stop = threading.Event()
+        self.stf_client = stf_client
+        self.poll_period = poll_period
+
+    def run(self):
+        last_run_time = 0
+        while True:
+            if self.stopped():
+                break
+            if self.stf_client.all_devices_are_connected:
+                break
+            if time.time() - last_run_time >= self.poll_period:
+                self.stf_client.connect_devices()
+                last_run_time = time.time()
+            time.sleep(0.1)
+
+    def stop(self):
+        self._stop.set()
+
+    def stopped(self):
+        return self._stop.isSet()
