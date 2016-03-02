@@ -24,7 +24,7 @@ class SmartphoneTestingFarmClient(stfapi.SmartphoneTestingFarmAPI):
     def connect_devices(self):
         available_devices = self._get_available_devices()
         for device_group in self.device_groups:
-            wanted_amount = device_group.get("wanted_amount")
+            wanted_amount = int(device_group.get("wanted_amount"))
             actual_amount = len(device_group.get("connected_devices"))
             if actual_amount < wanted_amount:
                 appropriate_devices = self._filter_devices(available_devices, device_group.get("specs"))
