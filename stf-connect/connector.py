@@ -19,6 +19,8 @@ logging.basicConfig(
 
 
 def exit_gracefully(signum, frame):
+    poll_thread.stop()
+    poll_thread.join()
     stf.close_all()
     sys.exit(0)
 
@@ -26,18 +28,20 @@ def exit_gracefully(signum, frame):
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, exit_gracefully)
     signal.signal(signal.SIGTERM, exit_gracefully)
+    with open(DEVICE_SPEC) as f:
+        device_spec = json.load(f)
     stf = client.SmartphoneTestingFarmClient(
         host=HOST,
         common_api_path="/api/v1",
         oauth_token=OAUTH_TOKEN,
+        device_spec=device_spec
     )
-    with open(DEVICE_SPEC) as f:
-        device_spec = json.load(f)
-    stf.add_devices(device_spec=device_spec)
     try:
-        stf.connect_mine()
+        stf.connect_devices()
     except Exception as e:
         stf.close_all()
         raise e
+    poll_thread = client.SmartphoneTestingFarmPoll(stf)
+    poll_thread.start()
     while True:
         time.sleep(100)
