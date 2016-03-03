@@ -93,7 +93,7 @@ class SmartphoneTestingFarmClient(stfapi.SmartphoneTestingFarmAPI):
 class SmartphoneTestingFarmPoll(threading.Thread):
     def __init__(self, stf_client, poll_period=3):
         super(SmartphoneTestingFarmPoll, self).__init__()
-        self._stop = threading.Event()
+        self._stopper = threading.Event()
         self.stf_client = stf_client
         self.poll_period = poll_period
 
@@ -110,7 +110,7 @@ class SmartphoneTestingFarmPoll(threading.Thread):
             time.sleep(0.1)
 
     def stop(self):
-        self._stop.set()
+        self._stopper.set()
 
     def stopped(self):
-        return self._stop.isSet()
+        return self._stopper.isSet()
