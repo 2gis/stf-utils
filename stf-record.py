@@ -29,7 +29,7 @@ class STFRecordProtocol(WebSocketClientProtocol):
     def save_data_and_metadata(self, binary_data):
         if self.previous_msg_timestamp is None:
             self.first_msg_timestamp = time.time()
-        current_msg_timestamp = self.first_msg_timestamp
+        current_msg_timestamp = time.time()
         img_file = "{0}/{1}.jpg".format(
             self.img_directory,
             current_msg_timestamp - self.first_msg_timestamp
@@ -38,13 +38,14 @@ class STFRecordProtocol(WebSocketClientProtocol):
             log.debug('Writing image data to file {0}'.format(file.name))
             file.write(binary_data)
         metadata_file = "{0}/input.txt".format(self.img_directory)
-        m_file = open(metadata_file, 'w')
+        m_file = open(metadata_file, 'a')
         log.debug('Appending image metadata to file {0}'.format(m_file.name))
         if self.previous_msg_timestamp is not None:
             duration = current_msg_timestamp - self.previous_msg_timestamp
-            m_file.write("duration {0}".format(duration))
-        m_file.write("file '{0}'".format(img_file))
+            m_file.write("duration {0}\n".format(duration))
+        m_file.write("file '{0}'\n".format(img_file))
         m_file.close()
+        self.previous_msg_timestamp = current_msg_timestamp
 
     def onOpen(self):
         log.info('onOpen')
