@@ -1,8 +1,8 @@
 import os
+import time
 import argparse
 import asyncio
 import logging
-from datetime import datetime
 from autobahn.asyncio.websocket import WebSocketClientProtocol, \
     WebSocketClientFactory
 
@@ -15,6 +15,28 @@ class STFRecordProtocol(WebSocketClientProtocol):
     host = None
     port = None
 
+    def __init__(self):
+        super().__init__()
+        self.previous_msg_timestamp = None
+        self.first_msg_timestamp = None
+
+    def write_data_to_file(self, binary_data, dirname="."):
+        if self.previous_msg_timestamp is None:
+            self.first_msg_timestamp = time.time()
+        current_msg_timestamp = self.first_msg_timestamp
+        img_file = "{1}/{0}.jpg".format(dirname, current_msg_timestamp - self.first_msg_timestamp)
+        with open(img_file, 'bw+') as file:
+            log.debug('Writing image data to file %s' % file)
+            file.write(binary_data)
+        metadata_file = "input.txt"
+        m_file = open(metadata_file, 'w')
+        log.debug('Appending image metadata to file %s' % m_file)
+        if self.previous_msg_timestamp is not None:
+            duration = current_msg_timestamp - self.previous_msg_timestamp
+            m_file.write("duration {0}".format(duration))
+        m_file.write("file '{0}'".format(img_file))
+        m_file.close()
+
     def onOpen(self):
         log.info('onOpen')
         self.sendMessage(b'1920x1080/0', isBinary=True)
@@ -22,18 +44,12 @@ class STFRecordProtocol(WebSocketClientProtocol):
 
     def onMessage(self, payload, isBinary):
         if isBinary:
-            current_time = datetime.now()
             if not self.directory:
                 current_dir = os.path.dirname(os.path.abspath(__file__))
                 os.mkdir('images')
-                self.directory = current_dir + '/images/'
+                self.directory = current_dir + '/images'
                 log.debug('Directory not set. Default directory is %s' % self.directory)
-
-            image_name = 'image_%s.png' % current_time.timestamp()
-            image = open(self.directory + '/' + image_name, 'bw+')
-            image.write(payload)
-            log.debug('Saving image ' + image_name + ' to ' + self.directory)
-            image.close()
+            self.write_data_to_file(payload, dirname=self.directory)
 
     def onClose(self, wasClean, code, reason):
         log.info('Disconnecting %s:%s ...' % (host, port))
