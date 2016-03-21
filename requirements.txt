@@ -1,0 +1,2 @@
+asyncio==3.4.3
+autobahn==0.13.0
