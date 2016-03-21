@@ -14,6 +14,7 @@ class STFRecordProtocol(WebSocketClientProtocol):
     img_directory = None
     host = None
     port = None
+    resolution = None
 
     def __init__(self):
         super().__init__()
@@ -48,9 +49,10 @@ class STFRecordProtocol(WebSocketClientProtocol):
         self.previous_msg_timestamp = current_msg_timestamp
 
     def onOpen(self):
-        log.info('onOpen')
-        self.sendMessage(b'1920x1080/0', isBinary=True)
-        self.sendMessage(b'on', isBinary=True)
+        log.info('Starting recieve binary data')
+        if self.resolution:
+            self.sendMessage(self.resolution.encode('ascii'))
+        self.sendMessage('on'.encode('ascii'))
 
     def onMessage(self, payload, isBinary):
         if isBinary:
@@ -58,17 +60,20 @@ class STFRecordProtocol(WebSocketClientProtocol):
 
     def onClose(self, wasClean, code, reason):
         log.info('Disconnecting {0}:{1} ...'.format(host, port))
-        self.sendMessage(b'off', isBinary=True)
+        self.sendMessage('off'.encode('ascii'))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='')
+        description='Utility for saving screenshots from devices with openstf minicap')
     parser.add_argument(
         '-ws', required=True, help='WebSocket URL'
     )
     parser.add_argument(
         '-dir', help='Directory for images'
+    )
+    parser.add_argument(
+        '-resolution', help='Resolution of images'
     )
     parser.add_argument(
         '-log-level', help='Log level'
@@ -83,6 +88,7 @@ if __name__ == '__main__':
     host = args['ws'].split(':')[0]
     port = args['ws'].split(':')[1]
     directory = args['dir']
+    resolution = args['resolution']
 
     log.info('Connecting to {0}:{1} ...'.format(host, port))
 
@@ -91,9 +97,13 @@ if __name__ == '__main__':
     factory.protocol.img_directory = directory
     factory.protocol.host = host
     factory.protocol.port = port
+    factory.protocol.resolution = resolution
 
     loop = asyncio.get_event_loop()
     coro = loop.create_connection(factory, host, port)
     loop.run_until_complete(coro)
-    loop.run_forever()
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        log.info('Disconnecting {0}:{1} ...'.format(host, port))
     loop.close()
