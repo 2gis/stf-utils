@@ -2,11 +2,14 @@
 Utils for Open Smartphone Test Farm (OpenSTF)
 
 ### STF-record:
-- install dependencies
+- description:
+> Utility for getting screenshots from android devices which connect with OpenSTF. Images saves to directory. Utility makes file with list of images and duration.
+
+- install dependencies:
 ```
 pip3 install -r requirements.txt
 ```
-- run
+- run:
 ```
 python3 stf-record.py -ws="127.0.0.1:9000" -dir='test_dir'
 ```
