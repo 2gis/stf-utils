@@ -1,0 +1,26 @@
+[
+    {
+        "group_name": "alfa",
+        "amount": "10",
+        "min_sdk": "19",
+        "max_sdk": "23",
+        "specs": {
+            "abi": "x86",
+            "model": "ANY",
+            "platform": "Android",
+            "serial": "ANY",
+            "manufacturer": "ANY"
+        }
+    },
+    {
+        "group_name": "beta",
+        "amount": "3",
+        "specs": {
+            "abi": "armeabi-v7a",
+            "model": "ANY",
+            "platform": "Android",
+            "manufacturer": "ANY"
+        }
+    }
+]
+
