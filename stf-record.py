@@ -12,8 +12,7 @@ log = logging.getLogger('stf-record')
 
 class STFRecordProtocol(WebSocketClientProtocol):
     img_directory = None
-    host = None
-    port = None
+    address = None
     resolution = None
 
     def __init__(self):
@@ -59,7 +58,7 @@ class STFRecordProtocol(WebSocketClientProtocol):
             self.save_data_and_metadata(payload)
 
     def onClose(self, wasClean, code, reason):
-        log.info('Disconnecting {0}:{1} ...'.format(host, port))
+        log.info('Disconnecting {0} ...'.format(address))
         self.sendMessage('off'.encode('ascii'))
 
 
@@ -85,25 +84,28 @@ if __name__ == '__main__':
         log.info('Changed log level to {0}'.format(args['log_level'].upper()))
         log.setLevel(args['log_level'].upper())
 
-    host = args['ws'].split(':')[0]
-    port = args['ws'].split(':')[1]
+    address = args['ws']
+    if args['ws'].find('ws://') >= 0:
+        address = address.split('ws://')[1]
+
     directory = args['dir']
     resolution = args['resolution']
 
-    log.info('Connecting to {0}:{1} ...'.format(host, port))
+    log.info('Connecting to {0} ...'.format(address))
 
-    factory = WebSocketClientFactory("ws://{0}:{1}".format(host, port))
+    factory = WebSocketClientFactory("ws://{0}".format(address))
     factory.protocol = STFRecordProtocol
     factory.protocol.img_directory = directory
-    factory.protocol.host = host
-    factory.protocol.port = port
+    factory.protocol.address = address
     factory.protocol.resolution = resolution
 
     loop = asyncio.get_event_loop()
-    coro = loop.create_connection(factory, host, port)
+    coro = loop.create_connection(
+        factory, address.split(':')[0], address.split(':')[1]
+    )
     loop.run_until_complete(coro)
     try:
         loop.run_forever()
     except KeyboardInterrupt:
-        log.info('Disconnecting {0}:{1} ...'.format(host, port))
+        log.info('Disconnecting {0} ...'.format(address))
     loop.close()
