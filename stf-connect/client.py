@@ -6,10 +6,11 @@ import time
 
 
 class SmartphoneTestingFarmClient(stfapi.SmartphoneTestingFarmAPI):
-    def __init__(self, host, common_api_path, oauth_token, device_spec):
+    def __init__(self, host, common_api_path, oauth_token, device_spec, shutdown_emulator_on_disconnect):
         super(SmartphoneTestingFarmClient, self).__init__(host, common_api_path, oauth_token)
         self.device_groups = []
         self.device_spec = device_spec
+        self.shutdown_emulator_on_disconnect = shutdown_emulator_on_disconnect
         for wanted_device_group in self.device_spec:
             self.device_groups.append(
                 {
@@ -46,6 +47,7 @@ class SmartphoneTestingFarmClient(stfapi.SmartphoneTestingFarmAPI):
             content = resp.json()
             remote_connect_url = content.get("remoteConnectUrl")
             adb.connect(remote_connect_url)
+            device["remoteConnectUrl"] = remote_connect_url
             device_group.get("connected_devices").append(device)
 
     def close_all(self):
@@ -62,7 +64,15 @@ class SmartphoneTestingFarmClient(stfapi.SmartphoneTestingFarmAPI):
         for device_group in self.device_groups:
             while device_group.get("connected_devices"):
                 device = device_group.get("connected_devices").pop()
-                self.remote_disconnect(serial=device.get("serial"))
+                self._disconnect_device(device)
+
+    def _disconnect_device(self, device):
+        serial = device.get("serial")
+        if self.shutdown_emulator_on_disconnect and serial.startswith('emulator'):
+            remote_connect_url = device.get("remoteConnectUrl")
+            adb.shutdown_emulator(remote_connect_url)
+            return
+        self.remote_disconnect(serial)
 
     def _get_all_devices(self):
         resp = self.get_all_devices()
