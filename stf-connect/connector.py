@@ -4,13 +4,14 @@ import signal
 import client
 import json
 import logging
-from six.moves import configparser
+from six import moves
 
-config = configparser.ConfigParser()
+config = moves.configparser.ConfigParser()
 config.read("config.ini")
 HOST = config.get("main", "host")
 OAUTH_TOKEN = config.get("main", "oauth_token")
 DEVICE_SPEC = config.get("main", "device_spec")
+SHUTDOWN_EMULATOR_ON_DISCONNECT = config.get("main", "shutdown_emulator_on_disconnect")
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -34,7 +35,8 @@ if __name__ == '__main__':
         host=HOST,
         common_api_path="/api/v1",
         oauth_token=OAUTH_TOKEN,
-        device_spec=device_spec
+        device_spec=device_spec,
+        shutdown_emulator_on_disconnect = SHUTDOWN_EMULATOR_ON_DISCONNECT
     )
     try:
         stf.connect_devices()
