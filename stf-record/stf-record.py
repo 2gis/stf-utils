@@ -17,35 +17,49 @@ class STFRecordProtocol(WebSocketClientProtocol):
 
     def __init__(self):
         super().__init__()
-        self.previous_msg_timestamp = None
         self.first_msg_timestamp = None
+        self.previous_msg_timestamp = None
+        self.current_msg_timestamp = None
+        self._create_img_directory_if_not_exists()
+
+    def _create_img_directory_if_not_exists(self):
         if not self.img_directory:
             current_dir = os.path.dirname(os.path.abspath(__file__))
             self.img_directory = '{0}/images'.format(current_dir)
-            if not os.path.exists(self.img_directory):
+            log.debug(
+                'Directory not set. '
+                'Default directory is {0}'.format(self.img_directory)
+            )
+        if not os.path.exists(self.img_directory):
                 os.mkdir(self.img_directory)
-            log.debug('Directory not set. Default directory is {0}'.format(self.img_directory))
 
-    def save_data_and_metadata(self, binary_data):
-        if self.previous_msg_timestamp is None:
-            self.first_msg_timestamp = time.time()
-        current_msg_timestamp = time.time()
-        img_file = "{0}/{1}.jpg".format(
+    def _construct_img_filename(self):
+        img_filename = "{0}/{1}.jpg".format(
             self.img_directory,
-            current_msg_timestamp - self.first_msg_timestamp
+            self.current_msg_timestamp - self.first_msg_timestamp
         )
-        with open(img_file, 'bw+') as file:
+        return img_filename
+
+    @staticmethod
+    def _write_image_file(img_filename, binary_data):
+        with open(img_filename, 'bw+') as file:
             log.debug('Writing image data to file {0}'.format(file.name))
             file.write(binary_data)
-        metadata_file = "{0}/input.txt".format(self.img_directory)
-        m_file = open(metadata_file, 'a')
+
+    def _write_metadata(self, img_filename):
+        metadata_filename = "{0}/input.txt".format(self.img_directory)
+        m_file = open(metadata_filename, 'a')
         log.debug('Appending image metadata to file {0}'.format(m_file.name))
         if self.previous_msg_timestamp is not None:
-            duration = current_msg_timestamp - self.previous_msg_timestamp
+            duration = self.current_msg_timestamp - self.previous_msg_timestamp
             m_file.write("duration {0}\n".format(duration))
-        m_file.write("file '{0}'\n".format(img_file))
+        m_file.write("file '{0}'\n".format(img_filename))
         m_file.close()
-        self.previous_msg_timestamp = current_msg_timestamp
+
+    def save_data_and_metadata(self, binary_data):
+        img_filename = self._construct_img_filename()
+        self._write_image_file(img_filename, binary_data)
+        self._write_metadata(img_filename)
 
     def onOpen(self):
         log.info('Starting recieve binary data')
@@ -55,7 +69,11 @@ class STFRecordProtocol(WebSocketClientProtocol):
 
     def onMessage(self, payload, isBinary):
         if isBinary:
+            self.current_msg_timestamp = time.time()
+            if self.previous_msg_timestamp is None:
+                self.first_msg_timestamp = self.current_msg_timestamp
             self.save_data_and_metadata(payload)
+            self.previous_msg_timestamp = self.current_msg_timestamp
 
     def onClose(self, wasClean, code, reason):
         log.info('Disconnecting {0} ...'.format(address))
@@ -64,7 +82,9 @@ class STFRecordProtocol(WebSocketClientProtocol):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='Utility for saving screenshots from devices with openstf minicap')
+        description='Utility for saving screenshots '
+                    'from devices with openstf minicap'
+    )
     parser.add_argument(
         '-ws', required=True, help='WebSocket URL'
     )
