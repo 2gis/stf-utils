@@ -132,5 +132,6 @@ class SmartphoneTestingFarmAPI(object):
 
     remote_disconnect = bind_method(
         method="delete",
-        path="/user/devices/{serial}/remoteConnect"
+        path="/user/devices/{serial}/remoteConnect",
+        accepts_parameters=["serial"]
     )

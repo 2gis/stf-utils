@@ -34,8 +34,7 @@ class STFRecordProtocol(WebSocketClientProtocol):
                 os.mkdir(self.img_directory)
 
     def _construct_img_filename(self):
-        img_filename = "{0}/{1}.jpg".format(
-            self.img_directory,
+        img_filename = "{0}.jpg".format(
             self.current_msg_timestamp - self.first_msg_timestamp
         )
         return img_filename
@@ -57,7 +56,7 @@ class STFRecordProtocol(WebSocketClientProtocol):
         m_file.close()
 
     def save_data_and_metadata(self, binary_data):
-        img_filename = self._construct_img_filename()
+        img_filename = "%s/%s" % (self.img_directory, self._construct_img_filename())
         self._write_image_file(img_filename, binary_data)
         self._write_metadata(img_filename)
 
