@@ -2,6 +2,7 @@ import re
 import six
 import json
 import requests
+from common import config
 
 re_path_template = re.compile('{\w+}')
 
@@ -97,7 +98,8 @@ class SmartphoneTestingFarmAPI(object):
     )
 
     get_device = bind_method(
-        path="/devices/{serial}"
+        path="/devices/{serial}",
+        accepts_parameters=["serial"]
     )
 
     get_user_info = bind_method(
@@ -134,4 +136,11 @@ class SmartphoneTestingFarmAPI(object):
         method="delete",
         path="/user/devices/{serial}/remoteConnect",
         accepts_parameters=["serial"]
+    )
+
+
+api = SmartphoneTestingFarmAPI(
+        host=config.get("main", "host"),
+        common_api_path="/api/v1",
+        oauth_token=config.get("main", "oauth_token")
     )

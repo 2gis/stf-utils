@@ -1,13 +1,13 @@
 import six
-import stfapi
-import adb
+from common.stfapi import SmartphoneTestingFarmAPI
+from common import adb
 import threading
-import time
 import json
 import os
+import time
 
 
-class SmartphoneTestingFarmClient(stfapi.SmartphoneTestingFarmAPI):
+class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
     def __init__(self, host, common_api_path, oauth_token, device_spec, shutdown_emulator_on_disconnect, devices_file_path):
         super(SmartphoneTestingFarmClient, self).__init__(host, common_api_path, oauth_token)
         self.device_groups = []
@@ -66,7 +66,6 @@ class SmartphoneTestingFarmClient(stfapi.SmartphoneTestingFarmAPI):
         try:
             with open(self.devices_file_path, 'a+') as mapping_file:
                 json_mapping = json.dumps({
-                    "websocket_url": device.get("display").get("url"),
                     "adb_url": device.get("remoteConnectUrl"),
                     "serial": device.get("serial")
                 })

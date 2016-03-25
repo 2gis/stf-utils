@@ -1,13 +1,11 @@
-import sys
-import time
 import signal
-import client
-import json
 import logging
-from six import moves
+import json
+import time
+import sys
+from stf_connect.client import SmartphoneTestingFarmClient, SmartphoneTestingFarmPoll
+from common import config
 
-config = moves.configparser.ConfigParser()
-config.read("config.ini")
 HOST = config.get("main", "host")
 OAUTH_TOKEN = config.get("main", "oauth_token")
 DEVICE_SPEC = config.get("main", "device_spec")
@@ -34,20 +32,20 @@ if __name__ == '__main__':
     signal.signal(signal.SIGTERM, exit_gracefully)
     with open(DEVICE_SPEC) as f:
         device_spec = json.load(f)
-    stf = client.SmartphoneTestingFarmClient(
+    stf = SmartphoneTestingFarmClient(
         host=HOST,
         common_api_path="/api/v1",
         oauth_token=OAUTH_TOKEN,
         device_spec=device_spec,
         devices_file_path=DEVICES_FILE_PATH,
-        shutdown_emulator_on_disconnect = SHUTDOWN_EMULATOR_ON_DISCONNECT
+        shutdown_emulator_on_disconnect=SHUTDOWN_EMULATOR_ON_DISCONNECT
     )
     try:
         stf.connect_devices()
     except Exception as e:
         stf.close_all()
         raise e
-    poll_thread = client.SmartphoneTestingFarmPoll(stf)
+    poll_thread = SmartphoneTestingFarmPoll(stf)
     poll_thread.start()
     while True:
         time.sleep(100)
