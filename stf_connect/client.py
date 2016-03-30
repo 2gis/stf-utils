@@ -1,15 +1,18 @@
 import six
-import stfapi
-import adb
+from common.stfapi import SmartphoneTestingFarmAPI
+from common import adb
 import threading
+import json
+import os
 import time
 
 
-class SmartphoneTestingFarmClient(stfapi.SmartphoneTestingFarmAPI):
-    def __init__(self, host, common_api_path, oauth_token, device_spec, shutdown_emulator_on_disconnect):
+class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
+    def __init__(self, host, common_api_path, oauth_token, device_spec, shutdown_emulator_on_disconnect, devices_file_path):
         super(SmartphoneTestingFarmClient, self).__init__(host, common_api_path, oauth_token)
         self.device_groups = []
         self.device_spec = device_spec
+        self.devices_file_path = devices_file_path
         self.shutdown_emulator_on_disconnect = shutdown_emulator_on_disconnect
         for wanted_device_group in self.device_spec:
             self.device_groups.append(
@@ -46,15 +49,37 @@ class SmartphoneTestingFarmClient(stfapi.SmartphoneTestingFarmAPI):
             resp = self.remote_connect(serial=device.get("serial"))
             content = resp.json()
             remote_connect_url = content.get("remoteConnectUrl")
-            adb.connect(remote_connect_url)
-            device["remoteConnectUrl"] = remote_connect_url
-            device_group.get("connected_devices").append(device)
+            try:
+                adb.connect(remote_connect_url)
+                device["remoteConnectUrl"] = remote_connect_url
+                device_group.get("connected_devices").append(device)
+                self._add_device_to_file(device)
+            except TypeError:
+                print("Error during connecting device by adb connect")
+                continue
 
     def close_all(self):
         self._disconnect_all()
         self._delete_all()
 
+    def _add_device_to_file(self, device):
+        try:
+            with open(self.devices_file_path, 'a+') as mapping_file:
+                json_mapping = json.dumps({
+                    "adb_url": device.get("remoteConnectUrl"),
+                    "serial": device.get("serial")
+                })
+                mapping_file.write("{0}\n".format(json_mapping))
+        except PermissionError:
+            print("PermissionError: Can't open file {0}".format(self.devices_file_path))
+
     def _delete_all(self):
+        if os.path.exists(self.devices_file_path):
+            try:
+                os.remove(self.devices_file_path)
+            except PermissionError:
+                print("PermissionError: Can't remove file {0}".format(self.devices_file_path))
+
         for device_group in self.device_groups:
             while device_group.get("added_devices"):
                 device = device_group.get("added_devices").pop()
