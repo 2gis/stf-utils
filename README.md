@@ -51,7 +51,7 @@ python3 recorder.py -ws="127.0.0.1:9000" -dir='test_dir'
 -resolution - change resolution of images from device (default: as is)
 ```
 
-- convert images to .webm video format by ffmpeg
+- convert images to .webm video format by ffmpeg (tested on ffmpeg version 	7:3.0.0+git1~trusty from [trusty-media repo](https://launchpad.net/~mc3man/+archive/ubuntu/trusty-media))
 ```
 cd <images_directory>
 ffmpeg -f concat -i input.txt output.webm
