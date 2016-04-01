@@ -8,8 +8,9 @@ def connect(connect_url):
 
 
 def shutdown_emulator(connect_url):
-    command = ("-s %s shell am start -a android.intent.action.ACTION_REQUEST_SHUTDOWN" % connect_url).split()
-    _exec_adb(command).wait()
+    _emulator_shell = '-s %s shell' % connect_url
+    _shutdown_command = "am start -a android.intent.action.ACTION_REQUEST_SHUTDOWN; stop adbd"
+    _exec_adb(_emulator_shell.split() + [_shutdown_command]).wait()
 
 
 def _exec_adb(params):
