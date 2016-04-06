@@ -5,6 +5,7 @@ import threading
 import json
 import os
 import time
+import collections
 
 
 class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
@@ -16,14 +17,15 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         self.shutdown_emulator_on_disconnect = shutdown_emulator_on_disconnect
         for wanted_device_group in self.device_spec:
             self.device_groups.append(
-                {
-                    "group_name": wanted_device_group.get("group_name"),
-                    "wanted_amount": wanted_device_group.get("amount"),
-                    "specs": wanted_device_group.get("specs"),
-                    "added_devices": [],
-                    "connected_devices": []
-                }
-            )
+            {
+                "group_name": wanted_device_group.get("group_name"),
+                "wanted_amount": wanted_device_group.get("amount"),
+                "specs": wanted_device_group.get("specs", {}),
+                "min_sdk": int(wanted_device_group.get("min_sdk", 1)),
+                "max_sdk": int(wanted_device_group.get("max_sdk", 99)),
+                "added_devices": [],
+                "connected_devices": []
+            })
         self.all_devices_are_connected = False
 
     def connect_devices(self):
@@ -34,7 +36,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
             actual_amount = len(device_group.get("connected_devices"))
             if actual_amount < wanted_amount:
                 self.all_devices_are_connected = False
-                appropriate_devices = self._filter_devices(available_devices, device_group.get("specs"))
+                appropriate_devices = self._filter_devices(available_devices, device_group)
                 devices_to_connect = appropriate_devices[:wanted_amount - actual_amount]
                 self._add_devices_to_group(devices_to_connect, device_group)
                 self._connect_devices_to_group(devices_to_connect, device_group)
@@ -111,15 +113,34 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
                 available_devices.append(device)
         return available_devices
 
-    @staticmethod
-    def _filter_devices(devices, specification):
+    def _flatten_spec(self, d, parent_key='', sep='_'):
+        items = []
+        for k, v in d.items():
+            new_key = parent_key + sep + k if parent_key else k
+            if isinstance(v, collections.MutableMapping):
+                items.extend(self._flatten_spec(v, new_key, sep=sep).items())
+            else:
+                items.append((new_key, v))
+        return dict(items)
+
+    def _filter_devices(self, devices, specification):
         filtered_devices = []
         for device in devices:
+            flatten_device = self._flatten_spec(device)
+            min_sdk = specification.get("min_sdk")
+            max_sdk = specification.get("max_sdk")
+            correct_sdk_version_list = {i for i in range(min_sdk, max_sdk + 1)}
             device_is_appropriate = True
-            for key, value in six.iteritems(specification):
-                        if value not in {device.get(key), "ANY"}:
-                            device_is_appropriate = False
-                            break
+
+            if int(flatten_device.get("sdk")) not in correct_sdk_version_list:
+                device_is_appropriate = False
+                continue
+
+            for key, value in six.iteritems(specification.get("specs")):
+                if value not in {flatten_device.get(key), "ANY"}:
+                    device_is_appropriate = False
+                    break
+
             if device_is_appropriate:
                 filtered_devices.append(device)
         return filtered_devices
