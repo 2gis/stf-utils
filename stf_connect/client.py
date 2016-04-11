@@ -6,6 +6,9 @@ import json
 import os
 import time
 import collections
+import logging
+
+log = logging.getLogger('stf-connect')
 
 
 class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
@@ -26,39 +29,54 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
                 "added_devices": [],
                 "connected_devices": []
             })
+        log.debug("Created list of wanted devices groups: %s" % self.device_groups)
         self.all_devices_are_connected = False
 
     def connect_devices(self):
-        available_devices = self._get_available_devices()
         self.all_devices_are_connected = True
         for device_group in self.device_groups:
+            available_devices = self._get_available_devices()
+            simply_available_devices = [d.get("serial") for d in available_devices]
+            log.debug("Got avaliable devices for connect:\n%s" % simply_available_devices)
             wanted_amount = int(device_group.get("wanted_amount"))
             actual_amount = len(device_group.get("connected_devices"))
+            log.debug("Trying connect devices... Wanted Amount: %s. Actual Amount: %s" % (wanted_amount, actual_amount))
             if actual_amount < wanted_amount:
                 self.all_devices_are_connected = False
                 appropriate_devices = self._filter_devices(available_devices, device_group)
                 devices_to_connect = appropriate_devices[:wanted_amount - actual_amount]
-                self._add_devices_to_group(devices_to_connect, device_group)
-                self._connect_devices_to_group(devices_to_connect, device_group)
+                self._connect_added_devices(devices_to_connect, device_group)
 
-    def _add_devices_to_group(self, devices_to_add, device_group):
+    def _connect_added_devices(self, devices_to_add, device_group):
         for device in devices_to_add:
-            self.add_device(serial=device.get("serial"))
-            device_group.get("added_devices").append(device)
-
-    def _connect_devices_to_group(self, devices_to_connect, device_group):
-        for device in devices_to_connect:
-            resp = self.remote_connect(serial=device.get("serial"))
-            content = resp.json()
-            remote_connect_url = content.get("remoteConnectUrl")
             try:
-                adb.connect(remote_connect_url)
-                device["remoteConnectUrl"] = remote_connect_url
-                device_group.get("connected_devices").append(device)
-                self._add_device_to_file(device)
-            except TypeError:
-                print("Error during connecting device by adb connect")
-                continue
+                if self._device_is_available(device):
+                    self._add_device_to_group(device, device_group)
+                    self._connect_device_to_group(device, device_group)
+            except Exception as e:
+                self._delete_device_from_group(device, device_group)
+                log.debug("%s. \nDevice %s" % (str(e), device.get("serial")))
+
+    def _add_device_to_group(self, device, device_group):
+        self.add_device(serial=device.get("serial"))
+        device_group.get("added_devices").append(device)
+
+    def _connect_device_to_group(self, device, device_group):
+        device_serial = device.get("serial")
+        resp = self.remote_connect(serial=device_serial)
+        content = resp.json()
+        remote_connect_url = content.get("remoteConnectUrl")
+        log.debug("Got remote connect url %s for connect by adb for device %s" % (remote_connect_url, device_serial))
+
+        try:
+            adb.connect(remote_connect_url)
+            device["remoteConnectUrl"] = remote_connect_url
+            device_group.get("connected_devices").append(device)
+            self._add_device_to_file(device)
+        except TypeError:
+            raise Exception("Error during connecting device by adb connect %s for device %s" % (remote_connect_url, device_serial))
+        except ConnectionError:
+            raise Exception("ADB Connection Error during connection for %s with %s" % (remote_connect_url, device_serial))
 
     def close_all(self):
         self._disconnect_all()
@@ -73,19 +91,31 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
                 })
                 mapping_file.write("{0}\n".format(json_mapping))
         except PermissionError:
-            print("PermissionError: Can't open file {0}".format(self.devices_file_path))
+            log.debug("PermissionError: Can't open file {0}".format(self.devices_file_path))
+
+    def _delete_device_from_group(self, device_for_delete, device_group):
+        for device in device_group.get("added_devices"):
+            if device_for_delete.get("serial") == device.get("serial"):
+                try:
+                    self.delete_device(serial=device.get("serial"))
+                    index = device_group.get("added_devices").index(device)
+                    device_group.get("added_devices").pop(index)
+                    log.debug("Deleted device %s" % device.get("serial"))
+                except Exception as e:
+                    log.debug("Delete device %s was failed: %s" % (device.get("serial"), str(e)))
 
     def _delete_all(self):
         if os.path.exists(self.devices_file_path):
             try:
                 os.remove(self.devices_file_path)
             except PermissionError:
-                print("PermissionError: Can't remove file {0}".format(self.devices_file_path))
+                log.debug("PermissionError: Can't remove file {0}".format(self.devices_file_path))
 
         for device_group in self.device_groups:
-            while device_group.get("added_devices"):
-                device = device_group.get("added_devices").pop()
-                self.delete_device(serial=device.get("serial"))
+            simply_device_group = [d.get("serial") for d in device_group.get("added_devices")]
+            log.debug("Deleting devices from group \n%s" % simply_device_group)
+            for device in device_group.get("added_devices"):
+                self._delete_device_from_group(device, device_group)
 
     def _disconnect_all(self):
         for device_group in self.device_groups:
@@ -99,19 +129,41 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
             remote_connect_url = device.get("remoteConnectUrl")
             adb.shutdown_emulator(remote_connect_url)
             return
-        self.remote_disconnect(serial)
+
+        try:
+            self.remote_disconnect(serial)
+            log.debug("Device %s has been disconnected" % serial)
+        except Exception as e:
+            log.debug("Device %s has not been disconnected. %s" % (serial, str(e)))
 
     def _get_all_devices(self):
-        resp = self.get_all_devices()
-        content = resp.json()
-        return content.get("devices")
+        try:
+            resp = self.get_all_devices()
+            content = resp.json()
+            return content.get("devices")
+        except Exception as e:
+            log.debug("Getting devices list was failed %s" % str(e))
+            return []
 
     def _get_available_devices(self):
         available_devices = []
         for device in self._get_all_devices():
-            if device.get("present") and not device.get("owner"):
+            if self._device_is_available(device):
                 available_devices.append(device)
         return available_devices
+
+    def _device_is_available(self, device):
+        time.sleep(0.1)  # don't ddos api =)
+        is_available = False
+        try:
+            response = self.get_device(serial=device.get("serial"))
+            renewed_device = response.json().get("device", {})
+            if renewed_device.get("present") and renewed_device.get("ready") and not renewed_device.get("owner"):
+                log.debug("Device %s is available" % renewed_device.get("serial"))
+                is_available = True
+        except Exception as e:
+            log.debug("Device %s is not available %s" % (device.get("serial"), str(e)))
+        return is_available
 
     def _flatten_spec(self, d, parent_key='', sep='_'):
         items = []

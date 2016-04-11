@@ -18,9 +18,11 @@ logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s %(levelname)s %(message)s"
 )
+log = logging.getLogger('stf-connect')
 
 
 def exit_gracefully(signum, frame):
+    log.info("Stopping connect service...")
     poll_thread.stop()
     poll_thread.join()
     stf.close_all()
@@ -30,6 +32,7 @@ def exit_gracefully(signum, frame):
 if __name__ == '__main__':
     signal.signal(signal.SIGINT, exit_gracefully)
     signal.signal(signal.SIGTERM, exit_gracefully)
+    log.info("Starting connect service...")
     with open(DEVICE_SPEC) as f:
         device_spec = json.load(f)
     stf = SmartphoneTestingFarmClient(
