@@ -73,7 +73,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
             device["remoteConnectUrl"] = remote_connect_url
             device_group.get("connected_devices").append(device)
             self._add_device_to_file(device)
-            log.ingo("Device %s %s was added to connected devices list" % (device_serial, remote_connect_url))
+            log.info("Device %s %s was added to connected devices list" % (device_serial, remote_connect_url))
         except TypeError:
             raise Exception("Error during connecting device by adb connect %s for device %s" % (remote_connect_url, device_serial))
         except ConnectionError:
