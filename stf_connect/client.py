@@ -37,10 +37,10 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         for device_group in self.device_groups:
             available_devices = self._get_available_devices()
             simply_available_devices = [d.get("serial") for d in available_devices]
-            log.debug("Got avaliable devices for connect:\n%s" % simply_available_devices)
+            log.info("Got avaliable devices for connect:\n%s" % simply_available_devices)
             wanted_amount = int(device_group.get("wanted_amount"))
             actual_amount = len(device_group.get("connected_devices"))
-            log.debug("Trying connect devices... Wanted Amount: %s. Actual Amount: %s" % (wanted_amount, actual_amount))
+            log.info("Trying connect devices... Wanted Amount: %s. Actual Amount: %s" % (wanted_amount, actual_amount))
             if actual_amount < wanted_amount:
                 self.all_devices_are_connected = False
                 appropriate_devices = self._filter_devices(available_devices, device_group)
@@ -55,7 +55,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
                     self._connect_device_to_group(device, device_group)
             except Exception as e:
                 self._delete_device_from_group(device, device_group)
-                log.debug("%s. \nDevice %s" % (str(e), device.get("serial")))
+                log.error("%s. \nDevice %s" % (str(e), device.get("serial")))
 
     def _add_device_to_group(self, device, device_group):
         self.add_device(serial=device.get("serial"))
@@ -73,6 +73,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
             device["remoteConnectUrl"] = remote_connect_url
             device_group.get("connected_devices").append(device)
             self._add_device_to_file(device)
+            log.ingo("Device %s %s was added to connected devices list" % (device_serial, remote_connect_url))
         except TypeError:
             raise Exception("Error during connecting device by adb connect %s for device %s" % (remote_connect_url, device_serial))
         except ConnectionError:
@@ -91,7 +92,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
                 })
                 mapping_file.write("{0}\n".format(json_mapping))
         except PermissionError:
-            log.debug("PermissionError: Can't open file {0}".format(self.devices_file_path))
+            log.error("PermissionError: Can't open file {0}".format(self.devices_file_path))
 
     def _delete_device_from_group(self, device_for_delete, device_group):
         for device in device_group.get("added_devices"):
@@ -102,14 +103,14 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
                     device_group.get("added_devices").pop(index)
                     log.debug("Deleted device %s" % device.get("serial"))
                 except Exception as e:
-                    log.debug("Delete device %s was failed: %s" % (device.get("serial"), str(e)))
+                    log.error("Delete device %s was failed: %s" % (device.get("serial"), str(e)))
 
     def _delete_all(self):
         if os.path.exists(self.devices_file_path):
             try:
                 os.remove(self.devices_file_path)
             except PermissionError:
-                log.debug("PermissionError: Can't remove file {0}".format(self.devices_file_path))
+                log.error("PermissionError: Can't remove file {0}".format(self.devices_file_path))
 
         for device_group in self.device_groups:
             simply_device_group = [d.get("serial") for d in device_group.get("added_devices")]
@@ -134,7 +135,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
             self.remote_disconnect(serial)
             log.debug("Device %s has been disconnected" % serial)
         except Exception as e:
-            log.debug("Device %s has not been disconnected. %s" % (serial, str(e)))
+            log.error("Device %s has not been disconnected. %s" % (serial, str(e)))
 
     def _get_all_devices(self):
         try:
@@ -142,7 +143,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
             content = resp.json()
             return content.get("devices")
         except Exception as e:
-            log.debug("Getting devices list was failed %s" % str(e))
+            log.error("Getting devices list was failed %s" % str(e))
             return []
 
     def _get_available_devices(self):
@@ -162,7 +163,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
                 log.debug("Device %s is available" % renewed_device.get("serial"))
                 is_available = True
         except Exception as e:
-            log.debug("Device %s is not available %s" % (device.get("serial"), str(e)))
+            log.error("Device %s is not available %s" % (device.get("serial"), str(e)))
         return is_available
 
     def _flatten_spec(self, d, parent_key='', sep='_'):
