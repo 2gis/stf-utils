@@ -23,8 +23,13 @@ log = logging.getLogger('stf-connect')
 
 def exit_gracefully(signum, frame):
     log.info("Stopping connect service...")
-    poll_thread.stop()
-    poll_thread.join()
+    try:
+        log.info("Stopping poll thread...")
+        poll_thread.stop()
+        poll_thread.join()
+    except NameError:
+        log.warn("Poll thread is not defined, skipping...")
+    log.info("Stopping main thread...")
     stf.close_all()
     sys.exit(0)
 
