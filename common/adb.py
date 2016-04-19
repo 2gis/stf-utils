@@ -18,7 +18,7 @@ def connect(connect_url):
             log.debug("ADB device %s connected. \nStdout %s. \nStderr %s." % (connect_url, stdout, stderr))
             break
         elif time.time() - start_time > WAIT_FOR_CONNECT:
-            raise ConnectionError("ADB connect for device %s has beeen failed" % connect_url)
+            raise OSError("ADB connect for device %s has been failed" % connect_url)
 
 
 def device_is_ready(device_adb_name):
