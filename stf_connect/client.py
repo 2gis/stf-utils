@@ -76,7 +76,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
             log.info("Device %s %s was added to connected devices list" % (device_serial, remote_connect_url))
         except TypeError:
             raise Exception("Error during connecting device by adb connect %s for device %s" % (remote_connect_url, device_serial))
-        except ConnectionError:
+        except OSError:
             raise Exception("ADB Connection Error during connection for %s with %s" % (remote_connect_url, device_serial))
 
     def close_all(self):
@@ -91,8 +91,8 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
                     "serial": device.get("serial")
                 })
                 mapping_file.write("{0}\n".format(json_mapping))
-        except PermissionError:
-            log.error("PermissionError: Can't open file {0}".format(self.devices_file_path))
+        except OSError:
+            log.error("OSError: Can't open file {0}".format(self.devices_file_path))
 
     def _delete_device_from_group(self, device_for_delete, device_group):
         for device in device_group.get("added_devices"):
@@ -109,8 +109,8 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         if os.path.exists(self.devices_file_path):
             try:
                 os.remove(self.devices_file_path)
-            except PermissionError:
-                log.error("PermissionError: Can't remove file {0}".format(self.devices_file_path))
+            except OSError:
+                log.error("OSError: Can't remove file {0}".format(self.devices_file_path))
 
         for device_group in self.device_groups:
             simply_device_group = [d.get("serial") for d in device_group.get("added_devices")]
