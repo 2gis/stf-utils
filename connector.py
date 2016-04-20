@@ -3,6 +3,7 @@ import logging
 import json
 import time
 import sys
+import argparse
 from stf_connect.client import SmartphoneTestingFarmClient, SmartphoneTestingFarmPoll
 from common import config
 
@@ -35,11 +36,23 @@ def exit_gracefully(signum, frame):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='Utility for connecting '
+                    'devices from STF'
+    )
+    parser.add_argument(
+        '-groups', help='Device groups defined in spec file to connect'
+    )
+    args = vars(parser.parse_args())
     signal.signal(signal.SIGINT, exit_gracefully)
     signal.signal(signal.SIGTERM, exit_gracefully)
     log.info("Starting connect service...")
     with open(DEVICE_SPEC) as f:
         device_spec = json.load(f)
+    if args['groups']:
+        log.info('Working only with specified groups: {0}'.format(args['groups']))
+        specified_groups = args["groups"].split(",")
+        device_spec = [device_group for device_group in device_spec if device_group.get("group_name") in specified_groups]
     stf = SmartphoneTestingFarmClient(
         host=HOST,
         common_api_path="/api/v1",
