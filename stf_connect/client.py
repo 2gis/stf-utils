@@ -48,12 +48,24 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
                 devices_to_connect = appropriate_devices[:wanted_amount - actual_amount]
                 self._connect_added_devices(devices_to_connect, device_group)
 
+    def connected_devices_check(self):
+        for device_group in self.device_groups:
+            for device in device_group.get("connected_devices"):
+                if not adb.device_is_ready(device.get('remoteConnectUrl')):
+                    log.debug("Device %s is not connected" % device.get('serial'))
+                    try:
+                        self._connect_device_to_group(device, device_group)
+                    except Exception as e:
+                        self._delete_device_from_group(device, device_group)
+                        log.error("%s. \nDevice %s" % (str(e), device.get("serial")))
+
     def _connect_added_devices(self, devices_to_add, device_group):
         for device in devices_to_add:
             try:
                 if self._device_is_available(device):
                     self._add_device_to_group(device, device_group)
                     self._connect_device_to_group(device, device_group)
+                    self._add_device_to_file(device)
             except Exception as e:
                 self._delete_device_from_group(device, device_group)
                 log.error("%s. \nDevice %s" % (str(e), device.get("serial")))
@@ -73,7 +85,6 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
             adb.connect(remote_connect_url)
             device["remoteConnectUrl"] = remote_connect_url
             device_group.get("connected_devices").append(device)
-            self._add_device_to_file(device)
             log.info("Device %s %s was added to connected devices list" % (device_serial, remote_connect_url))
         except TypeError:
             raise Exception("Error during connecting device by adb connect %s for device %s" % (remote_connect_url, device_serial))
@@ -200,27 +211,45 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         return filtered_devices
 
 
-class SmartphoneTestingFarmPoll(threading.Thread):
+class CommonPollThread(threading.Thread):
     def __init__(self, stf_client, poll_period=3):
-        super(SmartphoneTestingFarmPoll, self).__init__()
+        super(CommonPollThread, self).__init__()
         self._stopper = threading.Event()
         self.stf_client = stf_client
         self.poll_period = poll_period
+        self.func = None
 
     def run(self):
+        log.info("Starting %s..." % str(self))
         last_run_time = 0
         while True:
             if self.stopped():
                 break
-            if self.stf_client.all_devices_are_connected:
-                break
             if time.time() - last_run_time >= self.poll_period:
-                self.stf_client.connect_devices()
+                if self.func:
+                    self.func()
                 last_run_time = time.time()
             time.sleep(0.1)
 
     def stop(self):
+        log.info("Stopping %s..." % str(self))
         self._stopper.set()
 
     def stopped(self):
         return self._stopper.isSet()
+
+
+class STFDevicesConnector(CommonPollThread):
+    def __init__(self, stf_client, poll_period=3):
+        super(STFDevicesConnector, self).__init__(stf_client, poll_period)
+        self.func = self.try_connect_required_devices
+
+    def try_connect_required_devices(self):
+        if not self.stf_client.all_devices_are_connected:
+            self.stf_client.connect_devices()
+
+
+class STFConnectedDevicesWatcher(CommonPollThread):
+    def __init__(self, stf_client, poll_period=5):
+        super(STFConnectedDevicesWatcher, self).__init__(stf_client, poll_period)
+        self.func = self.stf_client.connected_devices_check
