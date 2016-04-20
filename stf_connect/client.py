@@ -20,15 +20,16 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         self.shutdown_emulator_on_disconnect = shutdown_emulator_on_disconnect
         for wanted_device_group in self.device_spec:
             self.device_groups.append(
-            {
-                "group_name": wanted_device_group.get("group_name"),
-                "wanted_amount": wanted_device_group.get("amount"),
-                "specs": wanted_device_group.get("specs", {}),
-                "min_sdk": int(wanted_device_group.get("min_sdk", 1)),
-                "max_sdk": int(wanted_device_group.get("max_sdk", 99)),
-                "added_devices": [],
-                "connected_devices": []
-            })
+                {
+                    "group_name": wanted_device_group.get("group_name"),
+                    "wanted_amount": wanted_device_group.get("amount"),
+                    "specs": wanted_device_group.get("specs", {}),
+                    "min_sdk": int(wanted_device_group.get("min_sdk", 1)),
+                    "max_sdk": int(wanted_device_group.get("max_sdk", 99)),
+                    "added_devices": [],
+                    "connected_devices": []
+                }
+            )
         log.debug("Created list of wanted devices groups: %s" % self.device_groups)
         self.all_devices_are_connected = False
 
