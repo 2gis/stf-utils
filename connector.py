@@ -4,7 +4,7 @@ import json
 import time
 import sys
 import argparse
-from stf_connect.client import SmartphoneTestingFarmClient, SmartphoneTestingFarmPoll
+from stf_connect.client import SmartphoneTestingFarmClient, STFDevicesConnector, STFConnectedDevicesWatcher
 from common import config
 
 HOST = config.get("main", "host")
@@ -25,14 +25,18 @@ log = logging.getLogger('stf-connect')
 def exit_gracefully(signum, frame):
     log.info("Stopping connect service...")
     try:
-        log.info("Stopping poll thread...")
-        poll_thread.stop()
-        poll_thread.join()
-    except NameError:
-        log.warn("Poll thread is not defined, skipping...")
+        thread_stop(devices_connector_thread)
+        thread_stop(devices_watcher_thread)
+    except NameError as e:
+        log.warn("Poll thread is not defined, skipping... %s" % str(e))
     log.info("Stopping main thread...")
     stf.close_all()
     sys.exit(0)
+
+
+def thread_stop(thread):
+    thread.stop()
+    thread.join()
 
 
 if __name__ == '__main__':
@@ -61,12 +65,10 @@ if __name__ == '__main__':
         devices_file_path=DEVICES_FILE_PATH,
         shutdown_emulator_on_disconnect=SHUTDOWN_EMULATOR_ON_DISCONNECT
     )
-    try:
-        stf.connect_devices()
-    except Exception as e:
-        stf.close_all()
-        raise e
-    poll_thread = SmartphoneTestingFarmPoll(stf)
-    poll_thread.start()
+    devices_connector_thread = STFDevicesConnector(stf)
+    devices_watcher_thread = STFConnectedDevicesWatcher(stf)
+    devices_connector_thread.start()
+    devices_watcher_thread.start()
+
     while True:
         time.sleep(100)
