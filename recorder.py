@@ -1,11 +1,15 @@
-import os
 import argparse
 import logging
 import asyncio
 import signal
-from common.stfapi import api
-from stf_record.protocol import STFRecordProtocol
+import json
+import os
 from autobahn.asyncio.websocket import WebSocketClientFactory
+
+from common.stfapi import api
+from common import config
+from stf_record.protocol import STFRecordProtocol
+
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger('stf-record')
@@ -74,20 +78,43 @@ def remove_all_data(directory):
 
 
 def get_ws_url(args):
-    if not args["ws"] and not args["serial"]:
-        log.info("Require -serial or -ws for starting...")
-        exit(0)
+    # TODO: implement explicit but elegant generic_display_id processor
+    if args["adb_connect_url"]:
+        connected_devices_file_path = "{0}/{1}".format(
+            config.get("main", "devices_file_dir"),
+            config.get("main", "devices_file_name")
+        )
+        args["serial"] = _get_device_serial(args["adb_connect_url"], connected_devices_file_path)
 
-    if not args['ws'] and args["serial"]:
+    if args["serial"]:
         device_props = api.get_device(args["serial"])
-        json = device_props.json()
-        args["ws"] = json.get("device").get("display").get("url")
+        props_json = device_props.json()
+        args["ws"] = props_json.get("device").get("display").get("url")
         log.debug("Got websocket url {0} by device serial {1} from stf API".format(args["ws"], args["serial"]))
 
-    address = args['ws']
-    if args['ws'].find('ws://') >= 0:
-        address = address.split('ws://')[1]
+    address = args['ws'].split('ws://')[-1]
     return address
+
+
+def _get_device_serial(adb_connect_url, connected_devices_file_path):
+        device_serial = None
+        with open(connected_devices_file_path, 'r') as devices_file:
+            for line in devices_file.readlines():
+                line = json.loads(line)
+                log.debug(
+                    "Finding device serial of device connected as %s in %s" %
+                    (adb_connect_url, connected_devices_file_path)
+                )
+                if line.get("adb_url") == adb_connect_url:
+                    log.debug(
+                        "Found device serial %s for device connected as %s" %
+                        (line.get("serial"), adb_connect_url)
+                    )
+                    device_serial = line.get("serial")
+                    break
+            else:
+                log.warn("No matching device serial found for device name {0}".format(adb_connect_url))
+        return device_serial
 
 
 if __name__ == '__main__':
@@ -95,11 +122,15 @@ if __name__ == '__main__':
         description='Utility for saving screenshots '
                     'from devices with openstf minicap'
     )
-    parser.add_argument(
+    generic_display_id_group = parser.add_mutually_exclusive_group(required=True)
+    generic_display_id_group.add_argument(
         '-serial', help='Device serial'
     )
-    parser.add_argument(
+    generic_display_id_group.add_argument(
         '-ws', help='WebSocket URL'
+    )
+    generic_display_id_group.add_argument(
+        '-adb-connect-url', help='URL used to remote debug with adb connect, e.g. <host>:<port>'
     )
     parser.add_argument(
         '-dir', help='Directory for images'

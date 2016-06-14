@@ -44,7 +44,7 @@ class STFRecordProtocol(WebSocketClientProtocol):
         self._write_metadata(img_filename)
 
     def onOpen(self):
-        log.info('Starting recieve binary data')
+        log.info('Starting receive binary data')
         if self.resolution:
             self.sendMessage(self.resolution.encode('ascii'))
         self.sendMessage('on'.encode('ascii'))

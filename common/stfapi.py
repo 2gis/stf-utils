@@ -145,7 +145,7 @@ class SmartphoneTestingFarmAPI(object):
 
 
 api = SmartphoneTestingFarmAPI(
-        host=config.get("main", "host"),
-        common_api_path="/api/v1",
-        oauth_token=config.get("main", "oauth_token")
-    )
+    host=config.get("main", "host"),
+    common_api_path="/api/v1",
+    oauth_token=config.get("main", "oauth_token")
+)
