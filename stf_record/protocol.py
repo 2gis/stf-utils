@@ -1,8 +1,5 @@
-import os
 import time
-import asyncio
 import logging
-from common.stfapi import api
 from autobahn.asyncio.websocket import WebSocketClientProtocol
 
 log = logging.getLogger('stf-record')

@@ -16,13 +16,13 @@ def gracefully_exit(*args):
     exit(0)
 
 
-def wsfactory(address, directory, resolution, no_clean_old_data):
+def wsfactory(address, directory, resolution, keep_old_data):
     signal.signal(signal.SIGTERM, gracefully_exit)
     signal.signal(signal.SIGINT, gracefully_exit)
     log.info('Connecting to {0} ...'.format(address))
 
     directory = create_directory_if_not_exists(directory)
-    if not no_clean_old_data:
+    if not keep_old_data:
         remove_all_data(directory)
 
     factory = WebSocketClientFactory("ws://{0}".format(address))
@@ -111,7 +111,7 @@ if __name__ == '__main__':
         '-log-level', help='Log level'
     )
     parser.add_argument(
-        '-no-clean-old-data', help='Clean old data from directory', action='store_true'
+        '-no-clean-old-data', help='Do not clean old data from directory', action='store_true', default=False
     )
 
     args = vars(parser.parse_args())
@@ -124,5 +124,5 @@ if __name__ == '__main__':
         directory=args["dir"],
         resolution=args["resolution"],
         address=get_ws_url(args),
-        no_clean_old_data=args["no_clean_old_data"]
+        keep_old_data=args["no_clean_old_data"]
     )
