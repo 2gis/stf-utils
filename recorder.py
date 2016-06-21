@@ -1,28 +1,32 @@
-import os
 import argparse
 import logging
 import asyncio
 import signal
-from common.stfapi import api
-from stf_record.protocol import STFRecordProtocol
+import json
+import os
 from autobahn.asyncio.websocket import WebSocketClientFactory
 
+from common.stfapi import api
+from common import config
+from stf_record.protocol import STFRecordProtocol
+
+
 logging.basicConfig(level=logging.INFO)
-log = logging.getLogger('stf-record')
+log = logging.getLogger("stf-record")
 
 
 def gracefully_exit(*args):
-    log.info('Disconnecting...')
+    log.info("Disconnecting...")
     exit(0)
 
 
-def wsfactory(address, directory, resolution, no_clean_old_data):
+def wsfactory(address, directory, resolution, keep_old_data):
     signal.signal(signal.SIGTERM, gracefully_exit)
     signal.signal(signal.SIGINT, gracefully_exit)
-    log.info('Connecting to {0} ...'.format(address))
+    log.info("Connecting to {0} ...".format(address))
 
     directory = create_directory_if_not_exists(directory)
-    if not no_clean_old_data:
+    if not keep_old_data:
         remove_all_data(directory)
 
     factory = WebSocketClientFactory("ws://{0}".format(address))
@@ -33,7 +37,7 @@ def wsfactory(address, directory, resolution, no_clean_old_data):
 
     loop = asyncio.get_event_loop()
     coro = loop.create_connection(
-        factory, address.split(':')[0], address.split(':')[1]
+        factory, address.split(":")[0], address.split(":")[1]
     )
     loop.run_until_complete(coro)
     loop.run_forever()
@@ -41,24 +45,10 @@ def wsfactory(address, directory, resolution, no_clean_old_data):
 
 
 def create_directory_if_not_exists(directory):
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    if not directory:
-        directory = 'images'
-        log.debug(
-            'Directory not set. '
-            'Default directory is {0}'.format(directory)
-        )
-
+    directory = os.path.abspath(directory)
+    log.debug("Using directory \"{0}\" for storing images".format(directory))
     if not os.path.exists(directory):
-        os.mkdir(directory)
-
-    if directory[0] == ".":
-        directory = "{0}/{1}".format(current_dir, directory[2:])
-    elif directory[0] == "/":
-        directory = "{0}".format(directory)
-    else:
-        directory = "{0}/{1}".format(current_dir, directory)
-
+        os.makedirs(directory)
     return directory
 
 
@@ -74,55 +64,81 @@ def remove_all_data(directory):
 
 
 def get_ws_url(args):
-    if not args["ws"] and not args["serial"]:
-        log.info("Require -serial or -ws for starting...")
-        exit(0)
+    if args["adb_connect_url"]:
+        connected_devices_file_path = "{0}/{1}".format(
+            config.get("main", "devices_file_dir"),
+            config.get("main", "devices_file_name")
+        )
+        args["serial"] = _get_device_serial(args["adb_connect_url"], connected_devices_file_path)
 
-    if not args['ws'] and args["serial"]:
+    if args["serial"]:
         device_props = api.get_device(args["serial"])
-        json = device_props.json()
-        args["ws"] = json.get("device").get("display").get("url")
+        props_json = device_props.json()
+        args["ws"] = props_json.get("device").get("display").get("url")
         log.debug("Got websocket url {0} by device serial {1} from stf API".format(args["ws"], args["serial"]))
 
-    address = args['ws']
-    if args['ws'].find('ws://') >= 0:
-        address = address.split('ws://')[1]
+    address = args["ws"].split("ws://")[-1]
     return address
 
 
-if __name__ == '__main__':
+def _get_device_serial(adb_connect_url, connected_devices_file_path):
+        device_serial = None
+        with open(connected_devices_file_path, "r") as devices_file:
+            for line in devices_file.readlines():
+                line = json.loads(line)
+                log.debug("Finding device serial of device connected as {0} in {1}".format(
+                    adb_connect_url,
+                    connected_devices_file_path
+                ))
+                if line.get("adb_url") == adb_connect_url:
+                    log.debug("Found device serial {0} for device connected as {1}".format(
+                        line.get("serial"),
+                        adb_connect_url)
+                    )
+                    device_serial = line.get("serial")
+                    break
+            else:
+                log.warn("No matching device serial found for device name {0}".format(adb_connect_url))
+        return device_serial
+
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description='Utility for saving screenshots '
-                    'from devices with openstf minicap'
+        description="Utility for saving screenshots "
+                    "from devices with openstf minicap"
+    )
+    generic_display_id_group = parser.add_mutually_exclusive_group(required=True)
+    generic_display_id_group.add_argument(
+        "-serial", help="Device serial"
+    )
+    generic_display_id_group.add_argument(
+        "-ws", help="WebSocket URL"
+    )
+    generic_display_id_group.add_argument(
+        "-adb-connect-url", help="URL used to remote debug with adb connect, e.g. <host>:<port>"
     )
     parser.add_argument(
-        '-serial', help='Device serial'
+        "-dir", help="Directory for images", default="images"
     )
     parser.add_argument(
-        '-ws', help='WebSocket URL'
+        "-resolution", help="Resolution of images"
     )
     parser.add_argument(
-        '-dir', help='Directory for images'
+        "-log-level", help="Log level"
     )
     parser.add_argument(
-        '-resolution', help='Resolution of images'
-    )
-    parser.add_argument(
-        '-log-level', help='Log level'
-    )
-    parser.add_argument(
-        '-no-clean-old-data', help='Clean old data from directory', action='store_true'
+        "-no-clean-old-data", help="Do not clean old data from directory", action="store_true", default=False
     )
 
     args = vars(parser.parse_args())
 
-    if args['log_level']:
-        log.info('Changed log level to {0}'.format(args['log_level'].upper()))
-        log.setLevel(args['log_level'].upper())
+    if args["log_level"]:
+        log.info("Changed log level to {0}".format(args["log_level"].upper()))
+        log.setLevel(args["log_level"].upper())
 
     wsfactory(
         directory=args["dir"],
         resolution=args["resolution"],
         address=get_ws_url(args),
-        no_clean_old_data=args["no_clean_old_data"]
+        keep_old_data=args["no_clean_old_data"]
     )
