@@ -5,7 +5,7 @@ import time
 from threading import Timer
 
 log = logging.getLogger(__name__)
-WAIT_FOR_CONNECT = 10
+WAIT_FOR_CONNECT = 5
 ADB_TIMEOUT = 10
 
 

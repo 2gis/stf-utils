@@ -5,7 +5,8 @@ import requests
 import logging
 from common import config
 
-logging.getLogger("requests").setLevel(logging.WARNING)
+log = logging.getLogger("requests")
+log.setLevel(logging.WARNING)
 re_path_template = re.compile('{\w+}')
 
 
@@ -76,8 +77,10 @@ def bind_method(**config):
                 data=data
             )
             if response.status_code != 200:
-                raise Exception("Request Error: \n%s" % response.json())
-
+                if response.status_code == 403:
+                    log.warn("Forbidden! %s" % response.json())
+                else:
+                    raise Exception("Request Error: %s" % response.json())
             return response
 
     def _call(api, *args, **kwargs):
