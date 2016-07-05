@@ -1,3 +1,8 @@
+[![Build Status](https://travis-ci.org/2gis/stf-utils.svg?branch=master)](https://travis-ci.org/2gis/stf-utils)
+[![codecov](https://codecov.io/gh/2gis/stf-utils/branch/master/graph/badge.svg)](https://codecov.io/gh/2gis/stf-utils)
+
+
+
 # stf-utils
 Utils for Open Smartphone Test Farm (OpenSTF)
 
