@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = common, stf_connect, stf_record, tests
+omit = site-packages
+
+[html]
+directory = coverage
