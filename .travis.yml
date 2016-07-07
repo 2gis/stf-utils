@@ -6,7 +6,6 @@ install:
   - pip install -r requirements.txt
   - pip install -r test-requirements.txt
 script:
-  lode_runner -vs tests/ --with-xunit
+  lode_runner -vs tests/ --with-xunit --with-coverage --cover-erase --cover-package=common,stf_connect,stf_record --cover-xml
 after_success:
-  - coverage xml
   - codecov
