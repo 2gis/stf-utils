@@ -36,14 +36,14 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
     def connect_devices(self):
         self.all_devices_are_connected = True
         for device_group in self.device_groups:
-            available_devices = self._get_available_devices()
-            simply_available_devices = [d.get("serial") for d in available_devices]
-            log.info("Got avaliable devices for connect:\n%s" % simply_available_devices)
             wanted_amount = int(device_group.get("wanted_amount"))
             actual_amount = len(device_group.get("connected_devices"))
             log.info("Trying connect devices... Wanted Amount: %s. Actual Amount: %s" % (wanted_amount, actual_amount))
             if actual_amount < wanted_amount:
                 self.all_devices_are_connected = False
+                available_devices = self._get_available_devices()
+                simply_available_devices = [d.get("serial") for d in available_devices]
+                log.info("Got avaliable devices for connect:\n%s" % simply_available_devices)
                 appropriate_devices = self._filter_devices(available_devices, device_group)
                 devices_to_connect = appropriate_devices[:wanted_amount - actual_amount]
                 self._connect_added_devices(devices_to_connect, device_group)
@@ -54,9 +54,9 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
                 if not adb.device_is_ready(device.get('remoteConnectUrl')):
                     log.debug("Device %s is not connected" % device.get('serial'))
                     try:
-                        self._connect_device_to_group(device, device_group)
-                    except Exception as e:
                         self._delete_device_from_group(device, device_group)
+                        self._disconnect_device(device)
+                    except Exception as e:
                         log.error("%s. \nDevice %s" % (str(e), device.get("serial")))
 
     def _connect_added_devices(self, devices_to_add, device_group):
@@ -107,15 +107,21 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
             log.error("OSError: Can't open file {0}".format(self.devices_file_path))
 
     def _delete_device_from_group(self, device_for_delete, device_group):
-        for device in device_group.get("added_devices"):
+        lists = ["connected_devices", "added_devices"]
+        self.all_devices_are_connected = False
+        for _list in lists:
+            self._delete_device_from_devices_list(device_for_delete, device_group, _list)
+        self.delete_device(serial=device_for_delete.get("serial"))
+
+    def _delete_device_from_devices_list(self, device_for_delete, device_group, device_list):
+        for device in device_group.get(device_list):
             if device_for_delete.get("serial") == device.get("serial"):
                 try:
-                    self.delete_device(serial=device.get("serial"))
-                    index = device_group.get("added_devices").index(device)
-                    device_group.get("added_devices").pop(index)
+                    index = device_group.get(device_list).index(device)
+                    device_group.get(device_list).pop(index)
                     log.debug("Deleted device %s" % device.get("serial"))
                 except Exception as e:
-                    log.error("Delete device %s was failed: %s" % (device.get("serial"), str(e)))
+                    log.error("Delete device %s in list %s was failed: %s" % (device.get("serial"), device_list, str(e)))
 
     def _delete_all(self):
         if os.path.exists(self.devices_file_path):
@@ -138,12 +144,13 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
 
     def _disconnect_device(self, device):
         serial = device.get("serial")
-        if self.shutdown_emulator_on_disconnect and serial.startswith('emulator'):
-            remote_connect_url = device.get("remoteConnectUrl")
-            adb.shutdown_emulator(remote_connect_url)
-            return
-
         try:
+            remote_connect_url = device.get("remoteConnectUrl")
+            if self.shutdown_emulator_on_disconnect and serial.startswith('emulator'):
+                adb.shutdown_emulator(remote_connect_url)
+            else:
+                adb.disconnect(remote_connect_url)
+
             self.remote_disconnect(serial)
             log.debug("Device %s has been disconnected" % serial)
         except Exception as e:
