@@ -4,6 +4,7 @@ import json
 import requests
 import logging
 from common import config
+from common.exceptions import APIException
 
 log = logging.getLogger("requests")
 log.setLevel(logging.WARNING)
@@ -30,13 +31,13 @@ def bind_method(**config):
                 try:
                     self.parameters[self.accepts_parameters[index]] = value
                 except IndexError:
-                    raise Exception("Too many arguments supplied")
+                    raise APIException("Too many arguments supplied")
 
             for key, value in six.iteritems(kwargs):
                 if value is None:
                     continue
                 if key in self.parameters:
-                    raise Exception("Parameter %s already supplied" % key)
+                    raise APIException("Parameter %s already supplied" % key)
                 self.parameters[key] = value
 
         def _build_path(self):
@@ -45,7 +46,7 @@ def bind_method(**config):
                 try:
                     value = self.parameters[name]
                 except KeyError:
-                    raise Exception('No parameter value found for path variable: %s' % name)
+                    raise APIException('No parameter value found for path variable: %s' % name)
                 del self.parameters[name]
                 self.path = self.path.replace(variable, value)
 
@@ -80,7 +81,7 @@ def bind_method(**config):
                 if response.status_code == 403:
                     log.warn("Forbidden! %s" % response.json())
                 else:
-                    raise Exception("Request Error: %s" % response.json())
+                    raise APIException("Request Error: %s" % response.json())
             return response
 
     def _call(api, *args, **kwargs):

@@ -58,7 +58,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
             if actual_amount < wanted_amount:
                 self.all_devices_are_connected = False
                 available_devices = self._get_available_devices()
-                log.info("Avaliable devices for connect: %s" % available_devices)
+                log.info("Available devices for connect: %s" % available_devices)
                 appropriate_devices = self._filter_devices(available_devices, device_group)
                 devices_to_connect = appropriate_devices[:wanted_amount - actual_amount]
                 self._connect_added_devices(devices_to_connect, device_group)
@@ -78,11 +78,11 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         for device_group in self.device_groups:
             for device in device_group.get("connected_devices"):
                 if not adb.device_is_ready(device.remote_connect_url):
-                    log.info("Checking state for %s was failed "
-                             "because device was disconnected" % device)
+                    log.warn("ADB connection with device %s was lost. "
+                             "We'll try to connect a new one." % device)
                     self._delete_device_from_group(device, device_group)
                     self._disconnect_device(device)
-                    log.info("Still connected %s in group '%s'" %
+                    log.warn("Still connected %s in group '%s'" %
                              (device_group.get("connected_devices"),
                               device_group.get("group_name")))
 
@@ -115,7 +115,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
             device_group.get("connected_devices").append(device)
             log.info("%s was added to connected devices list" % device)
         except TypeError:
-            raise Exception("Error during connecting device by adb connect for %s" % device)
+            raise Exception("Error during connecting device by ADB connect for %s" % device)
         except OSError:
             raise Exception("ADB Connection Error during connection for %s" % device)
 
@@ -141,6 +141,8 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
             self.all_devices_are_connected = False
             for _list in lists:
                 self._delete_device_from_devices_list(device_for_delete, device_group, _list)
+
+            log.info("Deleted %s from lists %s" % (device_for_delete, lists))
         except Exception:
             log.exception("Error deleting %s" % device_for_delete)
 
@@ -150,7 +152,6 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
                 if device_for_delete.serial == device.serial:
                     index = device_group.get(device_list).index(device)
                     device_group.get(device_list).pop(index)
-            log.info("Deleted %s in list %s" % (device_for_delete, device_list))
         except Exception:
             log.exception("Deleting %s from list %s was failed" % (device_for_delete, device_list))
 
@@ -174,13 +175,13 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
 
     def remote_disconnect(self, device):
         try:
-            super(SmartphoneTestingFarmClient).remote_disconnect(device.serial)
+            super(SmartphoneTestingFarmClient, self).remote_disconnect(device.serial)
         except Exception:
             log.exception("Error during disconnect %s from stf" % device)
 
     def delete_device(self, device):
         try:
-            super(SmartphoneTestingFarmClient).delete_device(serial=device.serial)
+            super(SmartphoneTestingFarmClient, self).delete_device(serial=device.serial)
         except Exception:
             log.exception("Error during deleting %s from stf" % device)
 
@@ -189,11 +190,12 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
             if adb.device_is_ready(device.remote_connect_url):
                 if self.shutdown_emulator_on_disconnect and device.serial.startswith('emulator'):
                     adb.shutdown_emulator(device.remote_connect_url)
+                    log.info("%s has been released" % device)
                     return
                 else:
                     adb.disconnect(device.remote_connect_url)
         except Exception:
-            log.exception("Error during disconnect by ABD for %s" % device)
+            log.exception("Error during disconnect by ADB for %s" % device)
 
         self.remote_disconnect(device)
         self.delete_device(device)
