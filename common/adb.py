@@ -3,43 +3,41 @@ import subprocess
 import logging
 import time
 from threading import Timer
+from common.exceptions import ADBException
 
 log = logging.getLogger(__name__)
 WAIT_FOR_CONNECT = 5
 ADB_TIMEOUT = 10
 
 
-def command_with_wait(command, connect_url):
-    log.debug("ADB start command %s for %s" % (command, connect_url))
+def connect(connect_url):
+    log.debug("Trying to establish ADB connection with %s" % connect_url)
+    command = ["connect", connect_url]
     stdout, stderr = _exec_adb(command)
     start_time = time.time()
     while True:
         time.sleep(1)
         if device_is_ready(connect_url):
-            log.debug("ADB command %s for device %s was successful. "
-                      "Stdout %s. Stderr %s." % (command, connect_url, stdout, stderr))
+            log.debug("ADB connection with %s successfully established. "
+                      "Stdout %s. Stderr %s." % (connect_url, stdout, stderr))
             break
         elif time.time() - start_time > WAIT_FOR_CONNECT:
-            raise OSError("ADB command %s for device %s has been failed" % (command, connect_url))
-
-
-def connect(connect_url):
-    command = ["connect", connect_url]
-    command_with_wait(command, connect_url)
+            raise ADBException("Failed to establish ADB connection with %s. "
+                               "Stdout %s. Stderr %s." % (connect_url, stdout, stderr))
 
 
 def disconnect(connect_url):
-    log.debug("ADB start disconnecting %s" % connect_url)
+    log.debug("Closing ADB connection with %s" % connect_url)
     command = ["disconnect", connect_url]
     stdout, stderr = _exec_adb(command)
-    log.debug("ADB disconnect for device %s was done. "
+    log.debug("ADB disconnect for %s executed. "
               "Stdout %s. Stderr %s." % (connect_url, stdout, stderr))
 
 
 def device_is_ready(device_adb_name):
     state, stderr = get_state(device_adb_name)
     if state != b'device\n':
-        log.debug("Device %s isn't ready and has status is %s" % (device_adb_name, state))
+        log.debug("Device %s isn't ready and his status is %s" % (device_adb_name, state))
         return False
     else:
         log.debug("Device %s is ready" % device_adb_name)

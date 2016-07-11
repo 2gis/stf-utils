@@ -10,7 +10,7 @@ from common import config
 
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s"
 )
 log = logging.getLogger('stf-connect')
@@ -19,8 +19,8 @@ log = logging.getLogger('stf-connect')
 def exit_gracefully(signum, frame):
     log.info("Stopping connect service...")
     try:
-        thread_stop(devices_connector_thread)
         thread_stop(devices_watcher_thread)
+        thread_stop(devices_connector_thread)
     except NameError as e:
         log.warn("Poll thread is not defined, skipping... %s" % str(e))
     log.info("Stopping main thread...")
@@ -33,6 +33,12 @@ def thread_stop(thread):
     thread.join()
 
 
+def set_log_level():
+    if args["log_level"]:
+        log.info("Changed log level to {0}".format(args["log_level"].upper()))
+        log.setLevel(args["log_level"].upper())
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Utility for connecting '
@@ -41,9 +47,13 @@ if __name__ == '__main__':
     parser.add_argument(
         '-groups', help='Device groups defined in spec file to connect'
     )
+    parser.add_argument(
+        "-log-level", help="Log level"
+    )
     args = vars(parser.parse_args())
     signal.signal(signal.SIGINT, exit_gracefully)
     signal.signal(signal.SIGTERM, exit_gracefully)
+    set_log_level()
     log.info("Starting connect service...")
     with open(config.get("main", "device_spec")) as f:
         device_spec = json.load(f)
@@ -64,8 +74,8 @@ if __name__ == '__main__':
     )
     devices_connector_thread = STFDevicesConnector(stf)
     devices_watcher_thread = STFConnectedDevicesWatcher(stf)
-    devices_connector_thread.start()
     devices_watcher_thread.start()
+    devices_connector_thread.start()
 
     while True:
         time.sleep(100)
