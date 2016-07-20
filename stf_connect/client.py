@@ -85,6 +85,8 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
                     log.warn("Still connected %s in group '%s'" %
                              (device_group.get("connected_devices"),
                               device_group.get("group_name")))
+                else:
+                    adb.echo_ping(device.remote_connect_url)
 
     def _connect_added_devices(self, devices_to_add, device_group):
         for device in devices_to_add:

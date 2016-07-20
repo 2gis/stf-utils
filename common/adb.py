@@ -51,6 +51,16 @@ def get_state(device_adb_name):
     return stdout, stderr
 
 
+def echo_ping(device_adb_name):
+    command = "-s %s shell" % device_adb_name
+    shell_command = "echo 'ping'"
+    stdout, stderr = _exec_adb(command.split() + [shell_command])
+    log.debug("Echo 'ping' by ADB for device %s. Stdout %s. Stderr %s." % (device_adb_name,
+                                                                           str(stdout).replace("\n", ""),
+                                                                           str(stderr).replace("\n", "")))
+    return stdout, stderr
+
+
 def shutdown_emulator(connect_url):
     emulator_shell = '-s %s shell' % connect_url
     shutdown_command = "am start -a android.intent.action.ACTION_REQUEST_SHUTDOWN; stop adbd"
