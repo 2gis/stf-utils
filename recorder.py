@@ -4,6 +4,7 @@ import asyncio
 import signal
 import json
 import os
+import functools
 from autobahn.asyncio.websocket import WebSocketClientFactory
 
 from common.stfapi import api
@@ -15,15 +16,16 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("stf-record")
 
 
-def gracefully_exit(*args):
-    log.info("Disconnecting...")
-    exit(0)
+def gracefully_exit(loop):
+    log.info("Stopping loop...")
+    loop.stop()
 
 
 def wsfactory(address, directory, resolution, keep_old_data):
-    signal.signal(signal.SIGTERM, gracefully_exit)
-    signal.signal(signal.SIGINT, gracefully_exit)
-    log.info("Connecting to {0} ...".format(address))
+    loop = asyncio.get_event_loop()
+    gracefully_exit_handler = functools.partial(gracefully_exit, loop)
+    loop.add_signal_handler(signal.SIGTERM, gracefully_exit_handler)
+    loop.add_signal_handler(signal.SIGINT, gracefully_exit_handler)
 
     directory = create_directory_if_not_exists(directory)
     if not keep_old_data:
@@ -35,13 +37,15 @@ def wsfactory(address, directory, resolution, keep_old_data):
     factory.protocol.address = address
     factory.protocol.resolution = resolution
 
-    loop = asyncio.get_event_loop()
     coro = loop.create_connection(
         factory, address.split(":")[0], address.split(":")[1]
     )
+    log.info("Connecting to {0} ...".format(address))
     loop.run_until_complete(coro)
-    loop.run_forever()
-    loop.close()
+    try:
+        loop.run_forever()
+    finally:
+        loop.close()
 
 
 def create_directory_if_not_exists(directory):
