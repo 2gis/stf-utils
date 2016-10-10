@@ -1,10 +1,11 @@
-import re
-import six
 import json
-import requests
 import logging
-from common import config
-from common.exceptions import APIException
+
+import re
+import requests
+import six
+from stf_utils.common.exceptions import APIException
+from stf_utils.config import config
 
 log = logging.getLogger("requests")
 log.setLevel(logging.WARNING)

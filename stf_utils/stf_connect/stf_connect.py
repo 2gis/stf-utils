@@ -1,13 +1,12 @@
-import signal
-import logging
-import json
-import time
-import sys
 import argparse
+import json
+import logging
+import signal
+import sys
+import time
 
-from stf_connect.client import SmartphoneTestingFarmClient, STFDevicesConnector, STFConnectedDevicesWatcher
-from common import config
-
+from stf_utils.config import config
+from stf_utils.stf_connect.client import SmartphoneTestingFarmClient, STFDevicesConnector, STFConnectedDevicesWatcher
 
 logging.basicConfig(
     level=logging.INFO,
@@ -16,30 +15,27 @@ logging.basicConfig(
 log = logging.getLogger('stf-connect')
 
 
-def exit_gracefully(signum, frame):
-    log.info("Stopping connect service...")
-    try:
-        thread_stop(devices_watcher_thread)
-        thread_stop(devices_connector_thread)
-    except NameError as e:
-        log.warn("Poll thread is not defined, skipping... %s" % str(e))
-    log.info("Stopping main thread...")
-    stf.close_all()
-    sys.exit(0)
+def run():
+    def exit_gracefully(signum, frame):
+        log.info("Stopping connect service...")
+        try:
+            thread_stop(devices_watcher_thread)
+            thread_stop(devices_connector_thread)
+        except NameError as e:
+            log.warn("Poll thread is not defined, skipping... %s" % str(e))
+        log.info("Stopping main thread...")
+        stf.close_all()
+        sys.exit(0)
 
+    def thread_stop(thread):
+        thread.stop()
+        thread.join()
 
-def thread_stop(thread):
-    thread.stop()
-    thread.join()
+    def set_log_level():
+        if args["log_level"]:
+            log.info("Changed log level to {0}".format(args["log_level"].upper()))
+            log.setLevel(args["log_level"].upper())
 
-
-def set_log_level():
-    if args["log_level"]:
-        log.info("Changed log level to {0}".format(args["log_level"].upper()))
-        log.setLevel(args["log_level"].upper())
-
-
-if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Utility for connecting '
                     'devices from STF'
@@ -79,3 +75,6 @@ if __name__ == '__main__':
 
     while True:
         time.sleep(100)
+
+if __name__ == '__main__':
+    run()

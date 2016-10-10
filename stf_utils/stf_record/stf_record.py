@@ -1,16 +1,15 @@
 import argparse
-import logging
 import asyncio
-import signal
 import json
-import os
+import logging
+import signal
+
 import functools
+import os
 from autobahn.asyncio.websocket import WebSocketClientFactory
-
-from common.stfapi import api
-from common import config
-from stf_record.protocol import STFRecordProtocol
-
+from stf_utils.common.stfapi import api
+from stf_utils.config import config
+from stf_utils.stf_record.protocol import STFRecordProtocol
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("stf-record")
@@ -106,7 +105,7 @@ def _get_device_serial(adb_connect_url, connected_devices_file_path):
         return device_serial
 
 
-if __name__ == "__main__":
+def run():
     parser = argparse.ArgumentParser(
         description="Utility for saving screenshots "
                     "from devices with openstf minicap"
@@ -146,3 +145,6 @@ if __name__ == "__main__":
         address=get_ws_url(args),
         keep_old_data=args["no_clean_old_data"]
     )
+
+if __name__ == "__main__":
+    run()

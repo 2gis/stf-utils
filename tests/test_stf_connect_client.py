@@ -3,7 +3,7 @@ from mock import patch, Mock
 from unittest import TestCase
 
 from tests.helpers import get_response_from_file, wait_for
-from stf_connect.client import SmartphoneTestingFarmClient, STFConnectedDevicesWatcher
+from stf_utils.stf_connect.client import SmartphoneTestingFarmClient, STFConnectedDevicesWatcher
 
 
 class TestSmartphoneTestingFarmClient(TestCase):
