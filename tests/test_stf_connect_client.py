@@ -45,23 +45,23 @@ class TestSmartphoneTestingFarmClient(TestCase):
         Expected: 0 devices connected and lists of devices was empty
         """
         with patch(
-            'stf_connect.client.SmartphoneTestingFarmClient.get_all_devices', self.all_devices_mock,
+            'stf_utils.stf_connect.client.SmartphoneTestingFarmClient.get_all_devices', self.all_devices_mock,
         ), patch(
-            'stf_connect.client.SmartphoneTestingFarmClient.get_device', self.get_device_mock,
+            'stf_utils.stf_connect.client.SmartphoneTestingFarmClient.get_device', self.get_device_mock,
         ), patch(
-            'stf_connect.client.SmartphoneTestingFarmClient.add_device', Mock(),
+            'stf_utils.stf_connect.client.SmartphoneTestingFarmClient.add_device', Mock(),
         ), patch(
-            'stf_connect.client.SmartphoneTestingFarmClient.remote_connect', self.remote_connect_mock,
+            'stf_utils.stf_connect.client.SmartphoneTestingFarmClient.remote_connect', self.remote_connect_mock,
         ), patch(
-            'stf_connect.client.SmartphoneTestingFarmClient.delete_device', Mock(),
+            'stf_utils.stf_connect.client.SmartphoneTestingFarmClient.delete_device', Mock(),
         ), patch(
-            'stf_connect.client.SmartphoneTestingFarmClient.remote_disconnect', Mock(),
+            'stf_utils.stf_connect.client.SmartphoneTestingFarmClient.remote_disconnect', Mock(),
         ), patch(
-            'common.adb.device_is_ready', Mock(return_value=True)
+            'stf_utils.common.adb.device_is_ready', Mock(return_value=True)
         ), patch(
-            'common.adb.connect', Mock(return_value=True)
+            'stf_utils.common.adb.connect', Mock(return_value=True)
         ), patch(
-            'common.adb.disconnect', Mock(return_value=True)
+            'stf_utils.common.adb.disconnect', Mock(return_value=True)
         ):
             stf = SmartphoneTestingFarmClient(
                 host="http://host.domain",
@@ -112,19 +112,19 @@ class TestSmartphoneTestingFarmClient(TestCase):
             raise Exception('something ugly happened in adb connect')
 
         with patch(
-            'stf_connect.client.SmartphoneTestingFarmClient.get_all_devices', self.all_devices_mock,
+            'stf_utils.stf_connect.client.SmartphoneTestingFarmClient.get_all_devices', self.all_devices_mock,
         ), patch(
-            'stf_connect.client.SmartphoneTestingFarmClient.get_device', self.get_device_mock,
+            'stf_utils.stf_connect.client.SmartphoneTestingFarmClient.get_device', self.get_device_mock,
         ), patch(
-            'stf_connect.client.SmartphoneTestingFarmClient.add_device', Mock(),
+            'stf_utils.stf_connect.client.SmartphoneTestingFarmClient.add_device', Mock(),
         ), patch(
-            'stf_connect.client.SmartphoneTestingFarmClient.remote_connect', self.remote_connect_mock,
+            'stf_utils.stf_connect.client.SmartphoneTestingFarmClient.remote_connect', self.remote_connect_mock,
         ), patch(
-            'common.adb.device_is_ready', Mock(side_effect=[False, True, True])
+            'stf_utils.common.adb.device_is_ready', Mock(side_effect=[False, True, True])
         ), patch(
-            'common.adb.connect', Mock(side_effect=[True, raise_exception, True])
+            'stf_utils.common.adb.connect', Mock(side_effect=[True, raise_exception, True])
         ), patch(
-            'common.adb.disconnect', Mock(return_value=True)
+            'stf_utils.common.adb.disconnect', Mock(return_value=True)
         ):
             stf = SmartphoneTestingFarmClient(
                 host="http://host.domain",
