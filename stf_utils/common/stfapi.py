@@ -5,7 +5,6 @@ import re
 import requests
 import six
 from stf_utils.common.exceptions import APIException
-from stf_utils.config import config
 
 log = logging.getLogger("requests")
 log.setLevel(logging.WARNING)
@@ -148,9 +147,3 @@ class SmartphoneTestingFarmAPI(object):
         accepts_parameters=["serial"]
     )
 
-
-api = SmartphoneTestingFarmAPI(
-    host=config.get("main", "host"),
-    common_api_path="/api/v1",
-    oauth_token=config.get("main", "oauth_token")
-)

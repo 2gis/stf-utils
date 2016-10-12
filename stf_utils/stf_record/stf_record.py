@@ -7,12 +7,13 @@ import signal
 import functools
 import os
 from autobahn.asyncio.websocket import WebSocketClientFactory
-from stf_utils.common.stfapi import api
-from stf_utils.config import config
+from stf_utils.common.stfapi import SmartphoneTestingFarmAPI
+from stf_utils.common.config import initialize_config_file
 from stf_utils.stf_record.protocol import STFRecordProtocol
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("stf-record")
+config = initialize_config_file("config.ini")
 
 
 def gracefully_exit(loop):
@@ -66,7 +67,7 @@ def remove_all_data(directory):
                     log.debug("Error during deleting file {0}/{1}: {2}".format(directory, file, str(e)))
 
 
-def get_ws_url(args):
+def get_ws_url(api, args):
     if args["adb_connect_url"]:
         connected_devices_file_path = "{0}/{1}".format(
             config.get("main", "devices_file_dir"),
@@ -139,10 +140,16 @@ def run():
         log.info("Changed log level to {0}".format(args["log_level"].upper()))
         log.setLevel(args["log_level"].upper())
 
+    api = SmartphoneTestingFarmAPI(
+        host=config.get("main", "host"),
+        common_api_path="/api/v1",
+        oauth_token=config.get("main", "oauth_token")
+    )
+
     wsfactory(
         directory=args["dir"],
         resolution=args["resolution"],
-        address=get_ws_url(args),
+        address=get_ws_url(api, args),
         keep_old_data=args["no_clean_old_data"]
     )
 

@@ -5,7 +5,7 @@ import signal
 import sys
 import time
 
-from stf_utils.config import config
+from stf_utils.common.config import initialize_config_file
 from stf_utils.stf_connect.client import SmartphoneTestingFarmClient, STFDevicesConnector, STFConnectedDevicesWatcher
 
 logging.basicConfig(
@@ -13,7 +13,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(message)s"
 )
 log = logging.getLogger('stf-connect')
-
+config = initialize_config_file("config.ini")
 
 def run():
     def exit_gracefully(signum, frame):
