@@ -13,7 +13,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(message)s"
 )
 log = logging.getLogger('stf-connect')
-config = initialize_config_file("config.ini")
+
 
 def run():
     def exit_gracefully(signum, frame):
@@ -37,24 +37,29 @@ def run():
             log.setLevel(args["log_level"].upper())
 
     parser = argparse.ArgumentParser(
-        description='Utility for connecting '
-                    'devices from STF'
+        description="Utility for connecting "
+                    "devices from STF"
     )
     parser.add_argument(
-        '-groups', help='Device groups defined in spec file to connect'
+        "-g", "--groups", help="Device groups defined in spec file to connect"
     )
     parser.add_argument(
-        "-log-level", help="Log level"
+        "-l", "--log-level", help="Log level"
+    )
+    parser.add_argument(
+        "-c", "--config", help="Path to config file", default="default-config.ini"
     )
     args = vars(parser.parse_args())
+    config_file = args["config"]
+    config = initialize_config_file(config_file)
     signal.signal(signal.SIGINT, exit_gracefully)
     signal.signal(signal.SIGTERM, exit_gracefully)
     set_log_level()
     log.info("Starting connect service...")
     with open(config.get("main", "device_spec")) as f:
         device_spec = json.load(f)
-    if args['groups']:
-        log.info('Working only with specified groups: {0}'.format(args['groups']))
+    if args["groups"]:
+        log.info("Working only with specified groups: {0}".format(args["groups"]))
         specified_groups = args["groups"].split(",")
         device_spec = [device_group for device_group in device_spec if device_group.get("group_name") in specified_groups]
     stf = SmartphoneTestingFarmClient(
@@ -62,10 +67,7 @@ def run():
         common_api_path="/api/v1",
         oauth_token=config.get("main", "oauth_token"),
         device_spec=device_spec,
-        devices_file_path="{0}/{1}".format(
-            config.get("main", "devices_file_dir"),
-            config.get("main", "devices_file_name")
-        ),
+        devices_file_path=config.get("main", "devices_file_path"),
         shutdown_emulator_on_disconnect=config.get("main", "shutdown_emulator_on_disconnect")
     )
     devices_connector_thread = STFDevicesConnector(stf)
@@ -76,5 +78,5 @@ def run():
     while True:
         time.sleep(100)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()
