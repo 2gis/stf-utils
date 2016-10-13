@@ -130,7 +130,7 @@ def run():
         "-k", "--keep-old-data", help="Do not clean old data from directory", action="store_true", default=False
     )
     parser.add_argument(
-        "-c", "--config", help="Path to config file", default="default-config.ini"
+        "-c", "--config", help="Path to config file", default="stf-utils.ini"
     )
 
     args = vars(parser.parse_args())
