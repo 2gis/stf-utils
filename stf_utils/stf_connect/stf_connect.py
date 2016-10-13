@@ -5,7 +5,7 @@ import signal
 import sys
 import time
 
-from stf_utils.common.config import initialize_config_file
+from stf_utils.config.config import initialize_config_file
 from stf_utils.stf_connect.client import SmartphoneTestingFarmClient, STFDevicesConnector, STFConnectedDevicesWatcher
 
 logging.basicConfig(
@@ -56,19 +56,19 @@ def run():
     signal.signal(signal.SIGTERM, exit_gracefully)
     set_log_level()
     log.info("Starting connect service...")
-    with open(config.get("main", "device_spec")) as f:
+    with open(config.main.get("device_spec")) as f:
         device_spec = json.load(f)
     if args["groups"]:
         log.info("Working only with specified groups: {0}".format(args["groups"]))
         specified_groups = args["groups"].split(",")
         device_spec = [device_group for device_group in device_spec if device_group.get("group_name") in specified_groups]
     stf = SmartphoneTestingFarmClient(
-        host=config.get("main", "host"),
+        host=config.main.get("host"),
         common_api_path="/api/v1",
-        oauth_token=config.get("main", "oauth_token"),
+        oauth_token=config.main.get("oauth_token"),
         device_spec=device_spec,
-        devices_file_path=config.get("main", "devices_file_path"),
-        shutdown_emulator_on_disconnect=config.get("main", "shutdown_emulator_on_disconnect")
+        devices_file_path=config.main.get("devices_file_path"),
+        shutdown_emulator_on_disconnect=config.main.get("shutdown_emulator_on_disconnect")
     )
     devices_connector_thread = STFDevicesConnector(stf)
     devices_watcher_thread = STFConnectedDevicesWatcher(stf)

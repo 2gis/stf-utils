@@ -4,11 +4,12 @@ import json
 import logging
 import signal
 
+from autobahn.asyncio.websocket import WebSocketClientFactory
+
 import functools
 import os
-from autobahn.asyncio.websocket import WebSocketClientFactory
 from stf_utils.common.stfapi import SmartphoneTestingFarmAPI
-from stf_utils.common.config import initialize_config_file
+from stf_utils.config.config import initialize_config_file
 from stf_utils.stf_record.protocol import STFRecordProtocol
 
 logging.basicConfig(level=logging.INFO)
@@ -90,7 +91,7 @@ def _get_device_serial(adb_connect_url, connected_devices_file_path):
 def run():
     def get_ws_url(api, args):
         if args["adb_connect_url"]:
-            connected_devices_file_path = config.get("main", "devices_file_path")
+            connected_devices_file_path = config.main.get("devices_file_path")
             args["serial"] = _get_device_serial(args["adb_connect_url"], connected_devices_file_path)
 
         if args["serial"]:
@@ -141,9 +142,9 @@ def run():
         log.setLevel(args["log_level"].upper())
 
     api = SmartphoneTestingFarmAPI(
-        host=config.get("main", "host"),
+        host=config.main.get("host"),
         common_api_path="/api/v1",
-        oauth_token=config.get("main", "oauth_token")
+        oauth_token=config.main.get("oauth_token")
     )
 
     wsfactory(
