@@ -7,8 +7,8 @@
 Python utilities for [STF](https://github.com/openstf/stf).
 
 ### Features:
-* [Connect Android devices](doc/CONNECTOR.md) from your STF instance with one simple command. Useful if you want to use STF with some automation tools (like Appium).
-* [Record videos](doc/RECORDER.md) of your automated tests passing.
+* [Connect Android devices](doc/STF-CONNECT.md) from your STF instance with one simple command. Useful if you want to use STF with some automation tools (like Appium).
+* [Record videos](doc/STF-RECORD.md) of your automated tests passing.
 * [Write your own](doc/API.md) python apps using STF API client implementation. 
 
 ### Prerequisites:

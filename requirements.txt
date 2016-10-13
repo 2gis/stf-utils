@@ -1,4 +1,0 @@
-six==1.10.0
-requests==2.9.1
-asyncio==3.4.3
-autobahn==0.13.0
