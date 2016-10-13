@@ -6,15 +6,19 @@
 
 ## Quick start:
 1. Install stf-utils:
-```shell
-pip install git+https://github.com/2gis/stf-utils.git
-```
+
+    ```shell
+    pip install git+https://github.com/2gis/stf-utils.git
+    ```
+
 1. Generate OAuth token in web-interface as described [here](https://github.com/openstf/stf/blob/master/doc/API.md#authentication).
 2. Create config file `stf-utils.ini`:
-```
-host = http://<your.stf.domain>
-oauth_token = <your OAuth token>
-```
+
+    ```
+    host = http://<your.stf.domain>
+    oauth_token = <your OAuth token>
+    ```
+
 2. Specify devices you want to connect by creating `device-spec.json` file (examples below)
 2. Run `stf-connect`
 
