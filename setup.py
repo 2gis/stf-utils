@@ -21,7 +21,7 @@ setup(
     },
     install_requires=[
         'six==1.10.0',
-        'requests==2.9.1',
+        'requests==2.10.0',
         'asyncio==3.4.3',
         'autobahn==0.13.0',
     ],
