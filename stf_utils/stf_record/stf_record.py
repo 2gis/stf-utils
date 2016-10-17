@@ -14,6 +14,7 @@ from stf_utils.stf_record.protocol import STFRecordProtocol
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("stf-record")
+config = initialize_config_file()
 
 
 def gracefully_exit(loop):
@@ -88,21 +89,23 @@ def _get_device_serial(adb_connect_url, connected_devices_file_path):
         return device_serial
 
 
-def run():
-    def get_ws_url(api, args):
-        if args["adb_connect_url"]:
-            connected_devices_file_path = config.main.get("devices_file_path")
-            args["serial"] = _get_device_serial(args["adb_connect_url"], connected_devices_file_path)
+def get_ws_url(api, args):
+    if args["adb_connect_url"]:
+        connected_devices_file_path = config.main.get("devices_file_path")
+        args["serial"] = _get_device_serial(
+            args["adb_connect_url"], connected_devices_file_path)
 
-        if args["serial"]:
-            device_props = api.get_device(args["serial"])
-            props_json = device_props.json()
-            args["ws"] = props_json.get("device").get("display").get("url")
-            log.debug("Got websocket url {0} by device serial {1} from stf API".format(args["ws"], args["serial"]))
+    if args["serial"]:
+        device_props = api.get_device(args["serial"])
+        props_json = device_props.json()
+        args["ws"] = props_json.get("device").get("display").get("url")
+        log.debug("Got websocket url {0} by device serial {1} from stf API".format(args["ws"], args["serial"]))
 
-        address = args["ws"].split("ws://")[-1]
-        return address
+    address = args["ws"].split("ws://")[-1]
+    return address
 
+
+def parse_args():
     parser = argparse.ArgumentParser(
         description="Utility for saving screenshots "
                     "from devices with openstf minicap"
@@ -135,24 +138,35 @@ def run():
 
     args = vars(parser.parse_args())
     config_file = args["config"]
-    config = initialize_config_file(config_file)
+    config.add_config_file(config_file)
 
     if args["log_level"]:
         log.info("Changed log level to {0}".format(args["log_level"].upper()))
         log.setLevel(args["log_level"].upper())
+    return args
+
+
+def start_recorder(dir, websocket_locator_dict, resolution=None, keep_old_data=False,
+                   oauth_token=config.main.get("oauth_token"), host=config.main.get("host")):
 
     api = SmartphoneTestingFarmAPI(
-        host=config.main.get("host"),
+        host=host,
         common_api_path="/api/v1",
-        oauth_token=config.main.get("oauth_token")
+        oauth_token=oauth_token
     )
 
+    ws_url = get_ws_url(api, websocket_locator_dict)
     wsfactory(
-        directory=args["dir"],
-        resolution=args["resolution"],
-        address=get_ws_url(api, args),
-        keep_old_data=args["keep_old_data"]
+        directory=dir,
+        resolution=resolution,
+        address=ws_url,
+        keep_old_data=keep_old_data
     )
+
+
+def run():
+    args = parse_args()
+    start_recorder(args["dir"], args, args["resolution"], args["keep_old_data"])
 
 if __name__ == "__main__":
     run()

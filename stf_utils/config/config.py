@@ -47,7 +47,7 @@ class Config(object):
                 setattr(self, section, d)
 
 
-def initialize_config_file(file):
+def initialize_config_file(file=""):
     config = Config(
         os.path.abspath(os.path.dirname(__file__)) + "/stf-utils.ini",
     )
