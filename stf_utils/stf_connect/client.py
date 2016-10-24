@@ -1,6 +1,6 @@
 import six
-from common.stfapi import SmartphoneTestingFarmAPI
-from common import adb
+from stf_utils.common.stfapi import SmartphoneTestingFarmAPI
+from stf_utils.common import adb
 import threading
 import json
 import os

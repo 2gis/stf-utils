@@ -5,18 +5,30 @@
 * adb
 
 ## Quick start:
+1. Install stf-utils:
+
+    ```shell
+    pip install git+https://github.com/2gis/stf-utils.git
+    ```
+
 1. Generate OAuth token in web-interface as described [here](https://github.com/openstf/stf/blob/master/doc/API.md#authentication).
-2. Edit [config.ini](../config.ini) - fill `OAUTH_TOKEN` and `host` values
-2. Specify devices you want to connect by editing `spec.json` (examples below)
-2. Run `python connector.py`
+2. Create config file `stf-utils.ini`:
 
-`connector.py` will connect and bind devices from your STF instance specified in `spec.json` file.
+    ```
+    host = http://<your.stf.domain>
+    oauth_token = <your OAuth token>
+    ```
 
-If some device for some reason will disconnect, `connector.py` will try to reconnect it again.
+2. Specify devices you want to connect by creating `device-spec.json` file (examples below)
+2. Run `stf-connect`
 
-To release devices binded by `connector.py`, type CTRL+C or kill `connector.py` process.
+`stf-connect` will connect and bind devices from your STF instance specified in `device-spec.json` file.
 
-## Examples of `spec.json` file:
+If some device for some reason will disconnect, `stf-connect` will try to reconnect it again.
+
+To release devices binded by `stf-connect`, type CTRL+C or kill `stf-connect` process.
+
+## Examples of `device-spec.json` file:
 ##### Connect all available devices
 ```json
 [
@@ -26,7 +38,7 @@ To release devices binded by `connector.py`, type CTRL+C or kill `connector.py` 
     }
 ]
 ```
-##### Connect one specific device by its serialno (spec.json example)
+##### Connect one specific device by its serialno (device-spec.json example)
 ```json
 [
     {
@@ -54,7 +66,7 @@ To release devices binded by `connector.py`, type CTRL+C or kill `connector.py` 
 
 
 ### Advanced usage: Use one spec.json for different cases
-You can specify several groups in your `spec.json` file and control which groups to connect with `-groups` argument for `connector.py`.
+You can specify several groups in your `device-spec.json` file and control which groups to connect with `--groups` argument for `stf-connect`.
 
 For example, you `spec.json` looks like:
 ```json
@@ -89,5 +101,5 @@ For example, you `spec.json` looks like:
 ```
 then, if you want only last two groups, you should run:
 ```shell
-python connector.py -groups the_magnificent_armeabi-v7a_seven,unit_test_devices
+stf-connect --groups the_magnificent_armeabi-v7a_seven,unit_test_devices
 ```

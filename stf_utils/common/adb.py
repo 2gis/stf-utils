@@ -3,7 +3,7 @@ import subprocess
 import logging
 import time
 from threading import Timer
-from common.exceptions import ADBException
+from stf_utils.common.exceptions import ADBException
 
 log = logging.getLogger(__name__)
 WAIT_FOR_CONNECT = 5

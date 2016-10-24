@@ -3,22 +3,21 @@
 Connect to "screen streaming service", provided by STF, save screenshots of your Android device, and create a video.
 
 ## Save screenshots
-- install requirements
-```
-pip3 install -r requirements.txt
-```
 - run:
 ```
-python3 recorder.py -serial="emulator-5555" -dir='test_dir'
-python3 recorder.py -ws="127.0.0.1:9000" -dir='test_dir'
+stf-record --serial="emulator-5555" --dir='test_dir'
+```
+or
+```
+stf-record --ws="127.0.0.1:9000" --dir='test_dir'
 ```
 - options:
 ```
--serial - Device serial for automatic getting websocket url for saving screenshots
--ws - WebSocket URL <host:port> with ws:// or not (required!)  
--dir - custom directory for saving screenshots from device (default: ./images )
--log-level - change log level for utility (default: INFO)
--resolution - change resolution of images from device (default: as is)
+--serial - Device serial for automatic getting websocket url for saving screenshots
+--ws - WebSocket URL <host:port> with ws:// or not (required!)
+--dir - custom directory for saving screenshots from device (default: ./images )
+--log-level - change log level for utility (default: INFO)
+--resolution - change resolution of images from device (default: as is)
 ```
 
 ## Create video

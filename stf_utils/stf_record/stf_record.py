@@ -1,16 +1,16 @@
 import argparse
-import logging
 import asyncio
-import signal
 import json
-import os
-import functools
+import logging
+import signal
+
 from autobahn.asyncio.websocket import WebSocketClientFactory
 
-from common.stfapi import api
-from common import config
-from stf_record.protocol import STFRecordProtocol
-
+import functools
+import os
+from stf_utils.common.stfapi import SmartphoneTestingFarmAPI
+from stf_utils.config.config import initialize_config_file
+from stf_utils.stf_record.protocol import STFRecordProtocol
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("stf-record")
@@ -67,24 +67,6 @@ def remove_all_data(directory):
                     log.debug("Error during deleting file {0}/{1}: {2}".format(directory, file, str(e)))
 
 
-def get_ws_url(args):
-    if args["adb_connect_url"]:
-        connected_devices_file_path = "{0}/{1}".format(
-            config.get("main", "devices_file_dir"),
-            config.get("main", "devices_file_name")
-        )
-        args["serial"] = _get_device_serial(args["adb_connect_url"], connected_devices_file_path)
-
-    if args["serial"]:
-        device_props = api.get_device(args["serial"])
-        props_json = device_props.json()
-        args["ws"] = props_json.get("device").get("display").get("url")
-        log.debug("Got websocket url {0} by device serial {1} from stf API".format(args["ws"], args["serial"]))
-
-    address = args["ws"].split("ws://")[-1]
-    return address
-
-
 def _get_device_serial(adb_connect_url, connected_devices_file_path):
         device_serial = None
         with open(connected_devices_file_path, "r") as devices_file:
@@ -106,43 +88,71 @@ def _get_device_serial(adb_connect_url, connected_devices_file_path):
         return device_serial
 
 
-if __name__ == "__main__":
+def run():
+    def get_ws_url(api, args):
+        if args["adb_connect_url"]:
+            connected_devices_file_path = config.main.get("devices_file_path")
+            args["serial"] = _get_device_serial(args["adb_connect_url"], connected_devices_file_path)
+
+        if args["serial"]:
+            device_props = api.get_device(args["serial"])
+            props_json = device_props.json()
+            args["ws"] = props_json.get("device").get("display").get("url")
+            log.debug("Got websocket url {0} by device serial {1} from stf API".format(args["ws"], args["serial"]))
+
+        address = args["ws"].split("ws://")[-1]
+        return address
+
     parser = argparse.ArgumentParser(
         description="Utility for saving screenshots "
                     "from devices with openstf minicap"
     )
     generic_display_id_group = parser.add_mutually_exclusive_group(required=True)
     generic_display_id_group.add_argument(
-        "-serial", help="Device serial"
+        "-s", "--serial", help="Device serial"
     )
     generic_display_id_group.add_argument(
-        "-ws", help="WebSocket URL"
+        "-w", "--ws", help="WebSocket URL"
     )
     generic_display_id_group.add_argument(
-        "-adb-connect-url", help="URL used to remote debug with adb connect, e.g. <host>:<port>"
+        "-a", "--adb-connect-url", help="URL used to remote debug with adb connect, e.g. <host>:<port>"
     )
     parser.add_argument(
-        "-dir", help="Directory for images", default="images"
+        "-d", "--dir", help="Directory for images", default="images"
     )
     parser.add_argument(
-        "-resolution", help="Resolution of images"
+        "-r", "--resolution", help="Resolution of images"
     )
     parser.add_argument(
-        "-log-level", help="Log level"
+        "-l", "--log-level", help="Log level"
     )
     parser.add_argument(
-        "-no-clean-old-data", help="Do not clean old data from directory", action="store_true", default=False
+        "-k", "--keep-old-data", help="Do not clean old data from directory", action="store_true", default=False
+    )
+    parser.add_argument(
+        "-c", "--config", help="Path to config file", default="stf-utils.ini"
     )
 
     args = vars(parser.parse_args())
+    config_file = args["config"]
+    config = initialize_config_file(config_file)
 
     if args["log_level"]:
         log.info("Changed log level to {0}".format(args["log_level"].upper()))
         log.setLevel(args["log_level"].upper())
 
+    api = SmartphoneTestingFarmAPI(
+        host=config.main.get("host"),
+        common_api_path="/api/v1",
+        oauth_token=config.main.get("oauth_token")
+    )
+
     wsfactory(
         directory=args["dir"],
         resolution=args["resolution"],
-        address=get_ws_url(args),
-        keep_old_data=args["no_clean_old_data"]
+        address=get_ws_url(api, args),
+        keep_old_data=args["keep_old_data"]
     )
+
+if __name__ == "__main__":
+    run()

@@ -1,10 +1,10 @@
-import re
-import six
 import json
-import requests
 import logging
-from common import config
-from common.exceptions import APIException
+
+import re
+import requests
+import six
+from stf_utils.common.exceptions import APIException
 
 log = logging.getLogger("requests")
 log.setLevel(logging.WARNING)
@@ -147,9 +147,3 @@ class SmartphoneTestingFarmAPI(object):
         accepts_parameters=["serial"]
     )
 
-
-api = SmartphoneTestingFarmAPI(
-    host=config.get("main", "host"),
-    common_api_path="/api/v1",
-    oauth_token=config.get("main", "oauth_token")
-)

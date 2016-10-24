@@ -3,9 +3,9 @@ python:
   - "2.7"
   - "3.5"
 install:
-  - pip install -r requirements.txt
   - pip install -r test-requirements.txt
+  - python setup.py install
 script:
-  lode_runner -vs tests/ --with-xunit --with-coverage --cover-erase --cover-package=common,stf_connect,stf_record --cover-xml
+  lode_runner -vs tests/ --with-xunit --with-coverage --cover-erase --cover-package=stf_utils --cover-xml
 after_success:
   - codecov
