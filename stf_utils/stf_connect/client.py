@@ -8,7 +8,7 @@ import time
 import collections
 import logging
 
-log = logging.getLogger('stf-connect')
+log = logging.getLogger(__name__)
 
 
 class Device:
@@ -115,7 +115,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         try:
             adb.connect(device.remote_connect_url)
             device_group.get("connected_devices").append(device)
-            log.info("%s was added to connected devices list" % device)
+            log.debug("%s was added to connected devices list" % device)
         except TypeError:
             raise Exception("Error during connecting device by ADB connect for %s" % device)
         except OSError:
@@ -144,7 +144,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
             for _list in lists:
                 self._delete_device_from_devices_list(device_for_delete, device_group, _list)
 
-            log.info("Deleted %s from lists %s" % (device_for_delete, lists))
+            log.debug("Deleted %s from lists %s" % (device_for_delete, lists))
         except Exception:
             log.exception("Error deleting %s" % device_for_delete)
 
@@ -275,7 +275,7 @@ class CommonPollThread(threading.Thread):
         self.func = None
 
     def run(self):
-        log.info("Starting %s..." % str(self))
+        log.debug("Starting %s..." % str(self))
         last_run_time = 0
         while True:
             if self.stopped():
@@ -287,7 +287,7 @@ class CommonPollThread(threading.Thread):
             time.sleep(0.1)
 
     def stop(self):
-        log.info("Stopping %s..." % str(self))
+        log.debug("Stopping %s..." % str(self))
         self._stopper.set()
 
     def stopped(self):
