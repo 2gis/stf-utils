@@ -1,3 +1,4 @@
+import os
 import argparse
 import json
 import logging
@@ -8,11 +9,9 @@ import time
 from stf_utils.config.config import initialize_config_file
 from stf_utils.stf_connect.client import SmartphoneTestingFarmClient, STFDevicesConnector, STFConnectedDevicesWatcher
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s"
-)
-log = logging.getLogger('stf-connect')
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+logging.basicConfig(level=getattr(logging, LOG_LEVEL))
+log = logging.getLogger(__name__)
 
 
 def run():
@@ -23,7 +22,7 @@ def run():
             thread_stop(devices_connector_thread)
         except NameError as e:
             log.warn("Poll thread is not defined, skipping... %s" % str(e))
-        log.info("Stopping main thread...")
+        log.debug("Stopping main thread...")
         stf.close_all()
         sys.exit(0)
 
@@ -33,7 +32,7 @@ def run():
 
     def set_log_level():
         if args["log_level"]:
-            log.info("Changed log level to {0}".format(args["log_level"].upper()))
+            log.debug("Changed log level to {0}".format(args["log_level"].upper()))
             log.setLevel(args["log_level"].upper())
 
     parser = argparse.ArgumentParser(

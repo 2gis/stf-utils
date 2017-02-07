@@ -2,7 +2,7 @@ import time
 import logging
 from autobahn.asyncio.websocket import WebSocketClientProtocol
 
-log = logging.getLogger('stf-record')
+log = logging.getLogger(__name__)
 
 
 class STFRecordProtocol(WebSocketClientProtocol):
@@ -44,7 +44,7 @@ class STFRecordProtocol(WebSocketClientProtocol):
         self._write_metadata(img_filename)
 
     def onOpen(self):
-        log.info('Starting receive binary data')
+        log.debug('Starting receive binary data')
         if self.resolution:
             self.sendMessage(self.resolution.encode('ascii'))
         self.sendMessage('on'.encode('ascii'))
@@ -58,5 +58,5 @@ class STFRecordProtocol(WebSocketClientProtocol):
             self.previous_msg_timestamp = self.current_msg_timestamp
 
     def onClose(self, wasClean, code, reason):
-        log.info('Disconnecting {0} ...'.format(self.address))
+        log.debug('Disconnecting {0} ...'.format(self.address))
         self.sendMessage('off'.encode('ascii'))

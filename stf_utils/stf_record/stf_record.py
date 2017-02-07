@@ -1,3 +1,4 @@
+import os
 import argparse
 import asyncio
 import json
@@ -12,8 +13,9 @@ from stf_utils.common.stfapi import SmartphoneTestingFarmAPI
 from stf_utils.config.config import initialize_config_file
 from stf_utils.stf_record.protocol import STFRecordProtocol
 
-logging.basicConfig(level=logging.INFO)
-log = logging.getLogger("stf-record")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+logging.basicConfig(level=getattr(logging, LOG_LEVEL))
+log = logging.getLogger(__name__)
 
 
 def gracefully_exit(loop):
@@ -138,7 +140,7 @@ def run():
     config = initialize_config_file(config_file)
 
     if args["log_level"]:
-        log.info("Changed log level to {0}".format(args["log_level"].upper()))
+        log.debug("Changed log level to {0}".format(args["log_level"].upper()))
         log.setLevel(args["log_level"].upper())
 
     api = SmartphoneTestingFarmAPI(
