@@ -46,7 +46,7 @@ def run():
             thread_stop(devices_watcher_thread)
             thread_stop(devices_connector_thread)
         except NameError as e:
-            log.warn("Poll thread is not defined, skipping... %s" % str(e))
+            log.warning("Poll thread is not defined, skipping... {}".format(e))
         log.debug("Stopping main thread...")
         stf.close_all()
         sys.exit(0)

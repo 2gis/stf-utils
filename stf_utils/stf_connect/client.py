@@ -39,28 +39,22 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         self.device_spec = device_spec
         self.devices_file_path = devices_file_path
         self.shutdown_emulator_on_disconnect = shutdown_emulator_on_disconnect
-        self.set_up_device_groups()
+        self._set_up_device_groups()
         self.all_devices_are_connected = False
 
-    def _get_wanted_amount(self, group):
-        _amount = group.get("amount", None)
-        if not _amount:
-            _provider_name = group["specs"].get("provider_name")
-            _amount = len(list(self._get_all_provider_devices(_provider_name)))
-        return _amount
+    def get_wanted_amount(self, group):
+        amount = group.get("wanted_amount")
+        if amount == 0:
+            devices = self.useful_devices
+            return len(self._filter_devices(devices, group))
+        return amount
 
-    def _get_all_provider_devices(self, provider: str):
-        for device in self._get_available_devices():
-            if device.provider["name"] == provider:
-                log.debug(device)
-                yield device
-
-    def set_up_device_groups(self):
+    def _set_up_device_groups(self):
         for wanted_device_group in self.device_spec:
             self.device_groups.append(
                 {
                     "group_name": wanted_device_group.get("group_name"),
-                    "wanted_amount": self._get_wanted_amount(wanted_device_group),
+                    "wanted_amount": int(wanted_device_group.get("amount", 0)),
                     "specs": wanted_device_group.get("specs", {}),
                     "min_sdk": int(wanted_device_group.get("min_sdk", 1)),
                     "max_sdk": int(wanted_device_group.get("max_sdk", 99)),
@@ -68,7 +62,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
                     "connected_devices": []
                 }
             )
-        log.debug("Created list of wanted devices groups: %s" % self.device_groups)
+        log.debug("Wanted device groups: {}".format(self.device_groups))
 
     def connect_devices(self):
         self.all_devices_are_connected = True
@@ -76,15 +70,12 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
             wanted_amount, actual_amount = self.get_amounts(device_group)
             if actual_amount < wanted_amount:
                 self.all_devices_are_connected = False
-                available_devices = self._get_available_devices()
-                log.info("Available devices for connect: %s" % available_devices)
-                appropriate_devices = self._filter_devices(available_devices, device_group)
+                appropriate_devices = self._filter_devices(self.available_devices, device_group)
                 devices_to_connect = appropriate_devices[:wanted_amount - actual_amount]
                 self._connect_added_devices(devices_to_connect, device_group)
 
-    @staticmethod
-    def get_amounts(device_group):
-        wanted_amount = int(device_group.get("wanted_amount"))
+    def get_amounts(self, device_group):
+        wanted_amount = self.get_wanted_amount(device_group)
         connected_devices = device_group.get("connected_devices")
         actual_amount = len(connected_devices)
         log.info("Group: %s. Wanted Amount: %s. Actual Amount (%s): %s"
@@ -97,13 +88,12 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         for device_group in self.device_groups:
             for device in device_group.get("connected_devices"):
                 if not adb.device_is_ready(device.remote_connect_url):
-                    log.warn("ADB connection with device %s was lost. "
-                             "We'll try to connect a new one." % device)
+                    log.warning("ADB connection with device {} was lost. "
+                                "We'll try to connect a new one.".format(device))
                     self._delete_device_from_group(device, device_group)
                     self._disconnect_device(device)
-                    log.warn("Still connected %s in group '%s'" %
-                             (device_group.get("connected_devices"),
-                              device_group.get("group_name")))
+                    log.warning("Still connected {} in group '{}'".format(
+                        device_group.get("connected_devices"), device_group.get("group_name")))
                 else:
                     adb.echo_ping(device.remote_connect_url)
 
@@ -111,7 +101,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         for device in devices_to_add:
             try:
                 log.info("Trying to connect %s from group %s..." % (device, device_group.get("group_name")))
-                if self._device_is_available(device):
+                if self.is_device_available(device.serial):
                     self._add_device_to_group(device, device_group)
                     self._connect_device_to_group(device, device_group)
                     self._add_device_to_file(device)
@@ -154,7 +144,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
                 })
                 mapping_file.write("{0}\n".format(json_mapping))
         except OSError:
-            log.exception("Can't open file {0} for %s".format(self.devices_file_path, device))
+            log.exception("Can't open file {0} for {}".format(self.devices_file_path, device))
 
     def _delete_device_from_group(self, device_for_delete, device_group):
         lists = ["connected_devices", "added_devices"]
@@ -222,35 +212,48 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         self.delete_device(device)
         log.info("%s has been released" % device)
 
-    def _get_all_devices(self):
+    def get_all_devices(self):
         try:
-            resp = self.get_all_devices()
+            resp = super(SmartphoneTestingFarmClient, self).get_all_devices()
             content = resp.json()
-            return content.get("devices")
+            return [Device(**device) for device in content.get("devices")]
         except Exception:
             log.exception("Getting devices list was failed")
             return []
 
-    def _get_available_devices(self):
-        available_devices = []
-        for device in self._get_all_devices():
-            device = Device(**device)
-            if self._device_is_available(device):
-                available_devices.append(device)
-        return available_devices
-
-    def _device_is_available(self, device):
+    def _get_device_state(self, serial):
         time.sleep(0.1)  # don't ddos api =)
-        is_available = False
         try:
-            response = self.get_device(serial=device.serial)
-            renewed_device = response.json().get("device", {})
-            if renewed_device.get("present") and renewed_device.get("ready") and not renewed_device.get("owner"):
-                log.debug("%s is available" % device)
-                is_available = True
+            response = self.get_device(serial=serial)
+            return response.json().get("device", {})
         except Exception:
-            log.exception("%s is not available" % device)
-        return is_available
+            log.exception("Device {} get state failed".format(self))
+
+    def is_device_available(self, serial):
+        state = self._get_device_state(serial)
+        if state.get("present") and state.get("ready") and not state.get("owner"):
+            log.debug("{} is available".format(serial))
+            return True
+        return False
+
+    def is_device_useful(self, serial):
+        state = self._get_device_state(serial)
+        if state.get("present") and state.get("ready"):
+            log.info("{} is useful".format(serial))
+            return True
+        return False
+
+    @property
+    def available_devices(self):
+        res = [device for device in self.get_all_devices() if self.is_device_available(device.serial)]
+        log.info("Available devices for connect: {}".format(res))
+        return res
+
+    @property
+    def useful_devices(self):
+        res = [device for device in self.get_all_devices() if self.is_device_useful(device.serial)]
+        log.debug("Useful devices: {}".format(res))
+        return res
 
     def _flatten_spec(self, d, parent_key='', sep='_'):
         items = []

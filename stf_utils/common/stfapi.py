@@ -37,7 +37,7 @@ def bind_method(**config):
                 if value is None:
                     continue
                 if key in self.parameters:
-                    raise APIException("Parameter %s already supplied" % key)
+                    raise APIException("Parameter {} already supplied".format(key))
                 self.parameters[key] = value
 
         def _build_path(self):
@@ -46,7 +46,7 @@ def bind_method(**config):
                 try:
                     value = self.parameters[name]
                 except KeyError:
-                    raise APIException('No parameter value found for path variable: %s' % name)
+                    raise APIException('No parameter value found for path variable: {}'.format(name))
                 del self.parameters[name]
                 self.path = self.path.replace(variable, value)
 
@@ -79,9 +79,9 @@ def bind_method(**config):
             )
             if response.status_code != 200:
                 if response.status_code == 403:
-                    log.warn("Forbidden! %s" % response.json())
+                    log.warning("Forbidden! {}".format(response.json()))
                 else:
-                    raise APIException("Request Error: %s" % response.json())
+                    raise APIException("Request Error: {}",format(response.json()))
             return response
 
     def _call(api, *args, **kwargs):
