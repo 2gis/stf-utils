@@ -1,12 +1,15 @@
+# -*- coding: utf-8 -*-
+
 import six
-from stf_utils.common.stfapi import SmartphoneTestingFarmAPI
-from stf_utils.common import adb
 import threading
 import json
 import os
 import time
 import collections
 import logging
+
+from stf_utils.common.stfapi import SmartphoneTestingFarmAPI
+from stf_utils.common import adb
 
 log = logging.getLogger(__name__)
 
@@ -36,11 +39,28 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         self.device_spec = device_spec
         self.devices_file_path = devices_file_path
         self.shutdown_emulator_on_disconnect = shutdown_emulator_on_disconnect
+        self.set_up_device_groups()
+        self.all_devices_are_connected = False
+
+    def _get_wanted_amount(self, group):
+        _amount = group.get("amount", None)
+        if not _amount:
+            _provider_name = group["specs"].get("provider_name")
+            _amount = len(list(self._get_all_provider_devices(_provider_name)))
+        return _amount
+
+    def _get_all_provider_devices(self, provider: str):
+        for device in self._get_available_devices():
+            if device.provider["name"] == provider:
+                log.debug(device)
+                yield device
+
+    def set_up_device_groups(self):
         for wanted_device_group in self.device_spec:
             self.device_groups.append(
                 {
                     "group_name": wanted_device_group.get("group_name"),
-                    "wanted_amount": wanted_device_group.get("amount"),
+                    "wanted_amount": self._get_wanted_amount(wanted_device_group),
                     "specs": wanted_device_group.get("specs", {}),
                     "min_sdk": int(wanted_device_group.get("min_sdk", 1)),
                     "max_sdk": int(wanted_device_group.get("max_sdk", 99)),
@@ -49,7 +69,6 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
                 }
             )
         log.debug("Created list of wanted devices groups: %s" % self.device_groups)
-        self.all_devices_are_connected = False
 
     def connect_devices(self):
         self.all_devices_are_connected = True
