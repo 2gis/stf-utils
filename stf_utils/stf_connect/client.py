@@ -239,7 +239,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
     def is_device_useful(self, serial):
         state = self._get_device_state(serial)
         if state.get("present") and state.get("ready"):
-            log.info("{} is useful".format(serial))
+            log.debug("{} is useful".format(serial))
             return True
         return False
 
@@ -252,7 +252,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
     @property
     def useful_devices(self):
         res = [device for device in self.get_all_devices() if self.is_device_useful(device.serial)]
-        log.debug("Useful devices: {}".format(res))
+        log.info("Useful devices: {}".format(res))
         return res
 
     def _flatten_spec(self, d, parent_key='', sep='_'):
