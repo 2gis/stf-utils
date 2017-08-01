@@ -44,6 +44,15 @@ def parse_args():
     return parser.parse_args()
 
 
+def register_signal_handler(handler):
+    def exit_gracefully(signum, frame):
+        handler()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, exit_gracefully)
+    signal.signal(signal.SIGTERM, exit_gracefully)
+
+
 def run():
     args = parse_args()
     set_log_level(args.log_level)
@@ -65,13 +74,7 @@ def run():
         shutdown_emulator_on_disconnect=config.main.get("shutdown_emulator_on_disconnect")
     )
 
-    # Register exit handler
-    def exit_gracefully(signum, frame):
-        stf.stop()
-        sys.exit(0)
-
-    signal.signal(signal.SIGINT, exit_gracefully)
-    signal.signal(signal.SIGTERM, exit_gracefully)
+    register_signal_handler(stf.stop)
 
     log.info("Starting device connect service...")
     if args.connect_and_quit:
