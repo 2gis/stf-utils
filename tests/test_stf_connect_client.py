@@ -1,6 +1,12 @@
+# -*- coding: utf-8 -*-
+
 from lode_runner import dataprovider
-from mock import patch, Mock
 from unittest import TestCase
+
+try:
+    from mock import patch, Mock
+except ImportError:
+    from unittest.mock import patch, Mock
 
 from tests.helpers import get_response_from_file, wait_for
 from stf_utils.stf_connect.client import SmartphoneTestingFarmClient, STFConnectedDevicesWatcher
@@ -45,7 +51,7 @@ class TestSmartphoneTestingFarmClient(TestCase):
         Expected: 0 devices connected and lists of devices was empty
         """
         with patch(
-            'stf_utils.stf_connect.client.SmartphoneTestingFarmClient.get_all_devices', self.all_devices_mock,
+            'stf_utils.common.stfapi.SmartphoneTestingFarmAPI.get_all_devices', self.all_devices_mock,
         ), patch(
             'stf_utils.stf_connect.client.SmartphoneTestingFarmClient.get_device', self.get_device_mock,
         ), patch(
@@ -112,7 +118,7 @@ class TestSmartphoneTestingFarmClient(TestCase):
             raise Exception('something ugly happened in adb connect')
 
         with patch(
-            'stf_utils.stf_connect.client.SmartphoneTestingFarmClient.get_all_devices', self.all_devices_mock,
+            'stf_utils.common.stfapi.SmartphoneTestingFarmAPI.get_all_devices', self.all_devices_mock,
         ), patch(
             'stf_utils.stf_connect.client.SmartphoneTestingFarmClient.get_device', self.get_device_mock,
         ), patch(

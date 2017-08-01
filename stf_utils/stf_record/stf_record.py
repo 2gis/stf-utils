@@ -86,7 +86,7 @@ def _get_device_serial(adb_connect_url, connected_devices_file_path):
                     device_serial = line.get("serial")
                     break
             else:
-                log.warn("No matching device serial found for device name {0}".format(adb_connect_url))
+                log.warning("No matching device serial found for device name {0}".format(adb_connect_url))
         return device_serial
 
 

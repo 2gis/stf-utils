@@ -12,7 +12,7 @@ setup(
             'config/*.ini'
         ],
     },
-    version='0.0.2',
+    version='0.0.3',
     entry_points={
         'console_scripts': [
             'stf-connect = stf_utils.stf_connect.stf_connect:run',
