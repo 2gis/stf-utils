@@ -299,19 +299,27 @@ class CommonPollThread(threading.Thread):
     def run(self):
         log.debug("Starting %s..." % str(self))
         last_run_time = 0
-        while True:
-            if self.stopped():
-                break
+        while self.running:
             if time.time() - last_run_time >= self.poll_period:
                 if self.func:
                     self.func()
                 last_run_time = time.time()
             time.sleep(0.1)
 
-    def stop(self):
-        log.debug("Stopping %s..." % str(self))
-        self._stopper.set()
+    def start(self):
+        log.debug("Starting {}...".format(self))
+        super(CommonPollThread, self).start()
 
+    def stop(self):
+        log.debug("Stopping {}...".format(self))
+        self._stopper.set()
+        self.join()
+
+    @property
+    def running(self):
+        return not self.stopped
+
+    @property
     def stopped(self):
         return self._stopper.isSet()
 
