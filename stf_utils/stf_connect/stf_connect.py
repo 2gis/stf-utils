@@ -69,6 +69,18 @@ class STFConnect:
         self.client.close_all()
 
 
+def get_spec(device_spec_path, groups=None):
+    with open(device_spec_path) as f:
+        device_spec = json.load(f)
+
+    if groups:
+        log.info("Working only with specified groups: {0}".format(groups))
+        specified_groups = groups.split(",")
+        return [group for group in device_spec if group.get("group_name") in specified_groups]
+
+    return device_spec
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Utility for connecting "
@@ -87,7 +99,7 @@ def parse_args():
         "--connect-and-quit", help="Connect devices and exit", action='store_true', default=False
     )
     parser.add_argument(
-        "--timeout", help="Devices connect loop timeout", default=600
+        "--timeout", help="Devices connect timeout", default=600
     )
     return parser.parse_args()
 
@@ -105,15 +117,10 @@ def run():
     args = parse_args()
     set_log_level(args.log_level)
     config = initialize_config_file(args.config)
-    with open(config.main.get("device_spec")) as f:
-        device_spec = json.load(f)
 
-    if args.groups:
-        log.info("Working only with specified groups: {0}".format(args.groups))
-        specified_groups = args.groups.split(",")
-        device_spec = [device_group for device_group in device_spec if device_group.get("group_name") in specified_groups]
+    device_spec = get_spec(config.main.get("device_spec"), args.groups)
 
-    stf_connect = STFConnect(config=config, device_spec=device_spec)
+    stf_connect = STFConnect(config, device_spec)
 
     register_signal_handler(stf_connect.stop)
 
