@@ -6,6 +6,7 @@ import json
 import logging
 import signal
 import sys
+import time
 
 from stf_utils.config.config import initialize_config_file
 from stf_utils.stf_connect.client import SmartphoneTestingFarmClient, STFDevicesConnector, STFConnectedDevicesWatcher
@@ -19,6 +20,53 @@ def set_log_level(_log_level):
     if _log_level:
         log.debug("Changed log level to {0}".format(_log_level.upper()))
         log.setLevel(_log_level.upper())
+
+
+class STFConnect:
+    def __init__(self, config, device_spec):
+        self.client = SmartphoneTestingFarmClient(
+            host=config.main.get("host"),
+            common_api_path="/api/v1",
+            oauth_token=config.main.get("oauth_token"),
+            device_spec=device_spec,
+            devices_file_path=config.main.get("devices_file_path"),
+            shutdown_emulator_on_disconnect=config.main.get("shutdown_emulator_on_disconnect")
+        )
+        self.connector = STFDevicesConnector(self.client)
+        self.watcher = STFConnectedDevicesWatcher(self.client)
+
+    def run_forever(self):
+        self._start_workers()
+        while True:
+            time.sleep(1)
+
+    def connect_and_quit(self, timeout):
+        start = time.time()
+        while time.time() < start + timeout:
+            if not self.client.all_devices_are_connected:
+                self.client.connect_devices()
+            else:
+                break
+            time.sleep(0.2)
+        else:
+            log.info("Timeout connecting devices {}".format(timeout))
+
+    def _start_workers(self):
+        self.watcher.start()
+        self.connector.start()
+
+    def _stop_workers(self):
+        if self.connector:
+            self.connector.stop()
+        if self.watcher:
+            self.watcher.stop()
+
+    def stop(self):
+        log.info("Stopping connect service...")
+        self._stop_workers()
+
+        log.debug("Stopping main thread...")
+        self.client.close_all()
 
 
 def parse_args():
@@ -65,22 +113,15 @@ def run():
         specified_groups = args.groups.split(",")
         device_spec = [device_group for device_group in device_spec if device_group.get("group_name") in specified_groups]
 
-    stf = SmartphoneTestingFarmClient(
-        host=config.main.get("host"),
-        common_api_path="/api/v1",
-        oauth_token=config.main.get("oauth_token"),
-        device_spec=device_spec,
-        devices_file_path=config.main.get("devices_file_path"),
-        shutdown_emulator_on_disconnect=config.main.get("shutdown_emulator_on_disconnect")
-    )
+    stf_connect = STFConnect(config=config, device_spec=device_spec)
 
-    register_signal_handler(stf.stop)
+    register_signal_handler(stf_connect.stop)
 
     log.info("Starting device connect service...")
     if args.connect_and_quit:
-        stf.connect_and_quit(args.timeout)
+        stf_connect.connect_and_quit(args.timeout)
     else:
-        stf.run_forever()
+        stf_connect.run_forever()
 
 if __name__ == "__main__":
     run()

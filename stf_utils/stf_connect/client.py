@@ -33,9 +33,6 @@ class Device:
 
 
 class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
-    device_connector = None
-    device_watcher = None
-
     def __init__(self, host, common_api_path, oauth_token, device_spec, shutdown_emulator_on_disconnect, devices_file_path):
         super(SmartphoneTestingFarmClient, self).__init__(host, common_api_path, oauth_token)
         self.device_groups = []
@@ -44,8 +41,6 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         self.shutdown_emulator_on_disconnect = shutdown_emulator_on_disconnect
         self._set_up_device_groups()
         self.all_devices_are_connected = False
-        self.device_connector = STFDevicesConnector(self)
-        self.device_watcher = STFConnectedDevicesWatcher(self)
 
     def get_wanted_amount(self, group):
         amount = group.get("wanted_amount")
@@ -78,39 +73,6 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
                 appropriate_devices = self._filter_devices(self.available_devices, device_group)
                 devices_to_connect = appropriate_devices[:wanted_amount - actual_amount]
                 self._connect_added_devices(devices_to_connect, device_group)
-
-    def connect_and_quit(self, timeout):
-        start = time.time()
-        while time.time() < start + timeout:
-            if not self.all_devices_are_connected:
-                self.connect_devices()
-            else:
-                break
-            time.sleep(0.2)
-        else:
-            log.info("Timeout connecting devices {}".format(timeout))
-
-    def run_forever(self):
-        self._start_workers()
-        while True:
-            time.sleep(1)
-
-    def _start_workers(self):
-        self.device_watcher.start()
-        self.device_connector.start()
-
-    def _stop_workers(self):
-        if self.device_connector:
-            self.device_connector.stop()
-        if self.device_watcher:
-            self.device_watcher.stop()
-
-    def stop(self):
-        log.info("Stopping connect service...")
-        self._stop_workers()
-
-        log.debug("Stopping main thread...")
-        self.close_all()
 
     def get_amounts(self, device_group):
         wanted_amount = self.get_wanted_amount(device_group)
