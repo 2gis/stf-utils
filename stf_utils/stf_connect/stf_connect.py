@@ -40,7 +40,7 @@ class STFConnect:
         while True:
             time.sleep(1)
 
-    def connect_and_quit(self, timeout):
+    def connect_devices(self, timeout):
         start = time.time()
         while time.time() < start + timeout:
             if not self.client.all_devices_are_connected:
@@ -50,6 +50,7 @@ class STFConnect:
             time.sleep(0.2)
         else:
             log.info("Timeout connecting devices {}".format(timeout))
+            self.client.close_all()
 
     def _start_workers(self):
         self.watcher.start()
@@ -126,7 +127,7 @@ def run():
 
     log.info("Starting device connect service...")
     if args.connect_and_quit:
-        stf_connect.connect_and_quit(args.timeout)
+        stf_connect.connect_devices(args.timeout)
     else:
         stf_connect.run_forever()
 
