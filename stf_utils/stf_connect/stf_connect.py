@@ -57,9 +57,9 @@ class STFConnect:
         self.connector.start()
 
     def _stop_workers(self):
-        if self.connector:
+        if self.connector and self.connector.running:
             self.connector.stop()
-        if self.watcher:
+        if self.watcher and self.watcher.running:
             self.watcher.stop()
 
     def stop(self):
