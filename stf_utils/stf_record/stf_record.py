@@ -1,4 +1,5 @@
-import os
+# -*- coding: utf-8 -*-
+
 import argparse
 import asyncio
 import json
@@ -9,12 +10,12 @@ from autobahn.asyncio.websocket import WebSocketClientFactory
 
 import functools
 import os
+
+from stf_utils import init_console_logging
 from stf_utils.common.stfapi import SmartphoneTestingFarmAPI
 from stf_utils.config.config import initialize_config_file
 from stf_utils.stf_record.protocol import STFRecordProtocol
 
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-logging.basicConfig(level=getattr(logging, LOG_LEVEL))
 log = logging.getLogger(__name__)
 
 
@@ -126,7 +127,7 @@ def run():
         "-r", "--resolution", help="Resolution of images"
     )
     parser.add_argument(
-        "-l", "--log-level", help="Log level"
+        "-l", "--log-level", help="Log level (default: INFO)", default="INFO"
     )
     parser.add_argument(
         "-k", "--keep-old-data", help="Do not clean old data from directory", action="store_true", default=False
@@ -136,12 +137,9 @@ def run():
     )
 
     args = vars(parser.parse_args())
+    init_console_logging(args["log_level"])
     config_file = args["config"]
     config = initialize_config_file(config_file)
-
-    if args["log_level"]:
-        log.debug("Changed log level to {0}".format(args["log_level"].upper()))
-        log.setLevel(args["log_level"].upper())
 
     api = SmartphoneTestingFarmAPI(
         host=config.main.get("host"),

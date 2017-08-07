@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import os
 import argparse
 import json
 import logging
@@ -8,18 +7,11 @@ import signal
 import sys
 import time
 
+from stf_utils import init_console_logging
 from stf_utils.config.config import initialize_config_file
 from stf_utils.stf_connect.client import SmartphoneTestingFarmClient, STFDevicesConnector, STFConnectedDevicesWatcher
 
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-logging.basicConfig(level=getattr(logging, LOG_LEVEL))
 log = logging.getLogger(__name__)
-
-
-def set_log_level(_log_level):
-    if _log_level:
-        log.debug("Changed log level to {0}".format(_log_level.upper()))
-        log.setLevel(_log_level.upper())
 
 
 class STFConnect:
@@ -92,7 +84,7 @@ def parse_args():
         "-g", "--groups", help="Device groups defined in spec file to connect"
     )
     parser.add_argument(
-        "-l", "--log-level", help="Log level"
+        "-l", "--log-level", help="Log level (default: INFO)", default="INFO"
     )
     parser.add_argument(
         "-c", "--config", help="Path to config file", default="stf-utils.ini"
@@ -118,7 +110,7 @@ def register_signal_handler(handler):
 
 def run():
     args = parse_args()
-    set_log_level(args.log_level)
+    init_console_logging(args.log_level)
     config = initialize_config_file(args.config)
 
     device_spec = get_spec(config.main.get("device_spec"), args.groups)
