@@ -8,12 +8,15 @@ import signal
 import sys
 import time
 
-from stf_utils.config.config import initialize_config_file
+from stf_utils.config.config import Config
 from stf_utils.stf_connect.client import SmartphoneTestingFarmClient, STFDevicesConnector, STFConnectedDevicesWatcher
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 logging.basicConfig(level=getattr(logging, LOG_LEVEL))
 log = logging.getLogger(__name__)
+
+
+DEFAULT_CONFIG_PATH = os.path.join(os.path.expanduser("~"), ".stf-utils", "stf-utils.ini")
 
 
 def set_log_level(_log_level):
@@ -95,7 +98,7 @@ def parse_args():
         "-l", "--log-level", help="Log level"
     )
     parser.add_argument(
-        "-c", "--config", help="Path to config file", default="stf-utils.ini"
+        "-c", "--config", help="Path to config file (default: ~/.stf-utils/stf-utils.ini)", default=DEFAULT_CONFIG_PATH
     )
     parser.add_argument(
         "--connect-and-stop",
@@ -119,7 +122,12 @@ def register_signal_handler(handler):
 def run():
     args = parse_args()
     set_log_level(args.log_level)
-    config = initialize_config_file(args.config)
+
+    try:
+        config = Config(args.config)
+    except FileNotFoundError:
+        log.error("File \"{}\" doesn\'t exist".format(args.config))
+        exit(1)
 
     device_spec = get_spec(config.main.get("device_spec"), args.groups)
 
@@ -128,7 +136,6 @@ def run():
     register_signal_handler(stf_connect.stop)
 
     log.info("Starting device connect service...")
-
     if args.connect_and_stop:
         stf_connect.connect_devices(args.connect_and_stop)
     else:
