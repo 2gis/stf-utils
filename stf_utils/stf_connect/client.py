@@ -291,7 +291,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
 class CommonPollThread(threading.Thread):
     def __init__(self, stf_client, poll_period=3):
         super(CommonPollThread, self).__init__()
-        self._stopper = threading.Event()
+        self._running = threading.Event()
         self.stf_client = stf_client
         self.poll_period = poll_period
         self.func = None
@@ -308,20 +308,17 @@ class CommonPollThread(threading.Thread):
 
     def start(self):
         log.debug("Starting {}...".format(self))
+        self._running.set()
         super(CommonPollThread, self).start()
 
     def stop(self):
         log.debug("Stopping {}...".format(self))
-        self._stopper.set()
+        self._running.clear()
         self.join()
 
     @property
     def running(self):
-        return not self.stopped
-
-    @property
-    def stopped(self):
-        return self._stopper.isSet()
+        return self._running.isSet()
 
 
 class STFDevicesConnector(CommonPollThread):
