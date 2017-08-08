@@ -1,9 +1,12 @@
+# -*- coding: utf-8 -*-
+
+import os
+import ast
+
 try:
     import ConfigParser
 except ImportError:
     import configparser as ConfigParser
-import os
-import ast
 
 
 class Config(object):
@@ -15,18 +18,20 @@ class Config(object):
         "shutdown_emulator_on_disconnect": "",
     }
 
-    def __init__(self, *args):
+    def __init__(self, config_path):
         """
-        :type args: tuple of str
+        :type path: str
         """
-        for ini_path in args:
-            self.add_config_file(ini_path)
+        if not os.path.exists(config_path):
+            raise FileNotFoundError(config_path)
+
+        self.add_config_file(config_path)
 
     def add_config_file(self, path_to_file):
         """
         :type path_to_file: str
         """
-        parser = ConfigParser.SafeConfigParser()
+        parser = ConfigParser.ConfigParser()
         parser.optionxform = str
         parser.read(path_to_file)
         sections = parser.sections()
@@ -46,10 +51,3 @@ class Config(object):
             else:
                 setattr(self, section, d)
 
-
-def initialize_config_file(file):
-    config = Config(
-        os.path.abspath(os.path.dirname(__file__)) + "/stf-utils.ini",
-    )
-    config.add_config_file(file)
-    return config
