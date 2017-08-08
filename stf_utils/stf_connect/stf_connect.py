@@ -51,6 +51,7 @@ class STFConnect:
         else:
             log.info("Timeout connecting devices {}".format(timeout))
             self.client.close_all()
+            exit(1)
 
     def _start_workers(self):
         self.watcher.start()
@@ -97,10 +98,11 @@ def parse_args():
         "-c", "--config", help="Path to config file", default="stf-utils.ini"
     )
     parser.add_argument(
-        "--connect-and-quit", help="Connect devices and exit", action='store_true', default=False
-    )
-    parser.add_argument(
-        "--timeout", help="Devices connect timeout", default=600
+        "--connect-and-stop",
+        help="Connect devices and stop with no disconnect. "
+             "Optional value: timeout in seconds. "
+             "Defaults to 600 if no value was passed",
+        type=int, nargs="?", const=600, default=None, metavar="TIMEOUT"
     )
     return parser.parse_args()
 
@@ -126,8 +128,9 @@ def run():
     register_signal_handler(stf_connect.stop)
 
     log.info("Starting device connect service...")
-    if args.connect_and_quit:
-        stf_connect.connect_devices(args.timeout)
+
+    if args.connect_and_stop:
+        stf_connect.connect_devices(args.connect_and_stop)
     else:
         stf_connect.run_forever()
 
