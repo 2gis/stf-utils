@@ -14,7 +14,7 @@ from stf_utils.stf_connect.client import SmartphoneTestingFarmClient, STFDevices
 
 log = logging.getLogger(__name__)
 
-DEFAULT_CONFIG_PATH = os.path.join(os.path.expanduser("~"), ".stf-utils", "stf-utils.ini")
+DEFAULT_CONFIG_PATH = os.path.abspath(os.path.join(os.curdir, "stf-utils.ini"))
 
 
 class STFConnect:
@@ -84,20 +84,23 @@ def parse_args():
                     "devices from STF"
     )
     parser.add_argument(
-        "-g", "--groups", help="Device groups defined in spec file to connect"
+        "-g", "--groups",
+        help="Device groups defined in spec file to connect"
     )
     parser.add_argument(
-        "-l", "--log-level", help="Log level (default: INFO)", default="INFO"
+        "-l", "--log-level", default="INFO",
+        help="Log level (default: INFO)"
     )
     parser.add_argument(
-        "-c", "--config", help="Path to config file (default: ~/.stf-utils/stf-utils.ini)", default=DEFAULT_CONFIG_PATH
+        "-c", "--config", default=DEFAULT_CONFIG_PATH,
+        help="Path to config file (default: stf-utils.ini from current directory)",
     )
     parser.add_argument(
         "--connect-and-stop",
+        type=int, nargs="?", const=600, default=None, metavar="TIMEOUT",
         help="Connect devices and stop with no disconnect. "
              "Optional value: timeout in seconds. "
-             "Defaults to 600 if no value was passed",
-        type=int, nargs="?", const=600, default=None, metavar="TIMEOUT"
+             "Defaults to 600 if no value was passed"
     )
     return parser.parse_args()
 
