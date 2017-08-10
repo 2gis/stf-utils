@@ -13,7 +13,7 @@ import os
 
 from stf_utils import init_console_logging
 from stf_utils.common.stfapi import SmartphoneTestingFarmAPI
-from stf_utils.config.config import initialize_config_file
+from stf_utils.config.config import Config
 from stf_utils.stf_record.protocol import STFRecordProtocol
 
 log = logging.getLogger(__name__)
@@ -138,8 +138,12 @@ def run():
 
     args = vars(parser.parse_args())
     init_console_logging(args["log_level"])
-    config_file = args["config"]
-    config = initialize_config_file(config_file)
+
+    try:
+        config = Config(args["config"])
+    except FileNotFoundError:
+        log.error("File \"{}\" doesn\'t exist".format(args["config"]))
+        exit(1)
 
     api = SmartphoneTestingFarmAPI(
         host=config.main.get("host"),
