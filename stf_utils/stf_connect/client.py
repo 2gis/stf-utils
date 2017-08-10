@@ -144,7 +144,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
                 })
                 mapping_file.write("{0}\n".format(json_mapping))
         except OSError:
-            log.exception("Can't open file {0} for {}".format(self.devices_file_path, device))
+            log.exception("Can't open file {} for {}".format(self.devices_file_path, device))
 
     def _delete_device_from_group(self, device_for_delete, device_group):
         lists = ["connected_devices", "added_devices"]
