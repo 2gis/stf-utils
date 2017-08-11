@@ -33,7 +33,8 @@ class Device:
 
 
 class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
-    def __init__(self, host, common_api_path, oauth_token, device_spec, shutdown_emulator_on_disconnect, devices_file_path):
+    def __init__(self, host, common_api_path, oauth_token, device_spec, shutdown_emulator_on_disconnect,
+                 devices_file_path, with_adb=True):
         super(SmartphoneTestingFarmClient, self).__init__(host, common_api_path, oauth_token)
         self.device_groups = []
         self.device_spec = device_spec
@@ -41,11 +42,12 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         self.shutdown_emulator_on_disconnect = shutdown_emulator_on_disconnect
         self._set_up_device_groups()
         self.all_devices_are_connected = False
+        self.with_adb = with_adb
 
     def get_wanted_amount(self, group):
         amount = group.get("wanted_amount")
         if amount == 0:
-            devices = self.useful_devices
+            devices = self.usable_devices
             return len(self._filter_devices(devices, group))
         return amount
 
@@ -115,20 +117,23 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         self.add_device(serial=device.serial)
         device_group.get("added_devices").append(device)
 
+    def _adb_connect(self, device):
+        try:
+            adb.connect(device.remote_connect_url)
+        except TypeError:
+            raise Exception("Error during connecting device by ADB connect for %s" % device)
+        except OSError:
+            raise Exception("ADB Connection Error during connection for %s" % device)
+
     def _connect_device_to_group(self, device, device_group):
         resp = self.remote_connect(serial=device.serial)
         content = resp.json()
         device.remote_connect_url = content.get("remoteConnectUrl")
         log.info("Got remote connect url %s for connect by adb for %s" % (device.remote_connect_url, device.serial))
-
-        try:
-            adb.connect(device.remote_connect_url)
-            device_group.get("connected_devices").append(device)
-            log.debug("%s was added to connected devices list" % device)
-        except TypeError:
-            raise Exception("Error during connecting device by ADB connect for %s" % device)
-        except OSError:
-            raise Exception("ADB Connection Error during connection for %s" % device)
+        if self.with_adb:
+            self._adb_connect(device)
+        device_group.get("connected_devices").append(device)
+        log.debug("%s was added to connected devices list" % device)
 
     def close_all(self):
         log.info("Disconnecting all devices...")
@@ -196,7 +201,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         except Exception:
             log.exception("Error during deleting %s from stf" % device)
 
-    def _disconnect_device(self, device):
+    def _adb_disconnect(self, device):
         try:
             if adb.device_is_ready(device.remote_connect_url):
                 if self.shutdown_emulator_on_disconnect and device.serial.startswith('emulator'):
@@ -207,6 +212,10 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
                     adb.disconnect(device.remote_connect_url)
         except Exception:
             log.exception("Error during disconnect by ADB for %s" % device)
+
+    def _disconnect_device(self, device):
+        if self.with_adb:
+            self._adb_disconnect(device)
 
         self.remote_disconnect(device)
         self.delete_device(device)
@@ -236,10 +245,10 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
             return True
         return False
 
-    def is_device_useful(self, serial):
+    def is_device_usable(self, serial):
         state = self._get_device_state(serial)
         if state.get("present") and state.get("ready"):
-            log.debug("{} is useful".format(serial))
+            log.debug("{} is usable".format(serial))
             return True
         return False
 
@@ -250,9 +259,9 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         return res
 
     @property
-    def useful_devices(self):
-        res = [device for device in self.get_all_devices() if self.is_device_useful(device.serial)]
-        log.info("Useful devices: {}".format(res))
+    def usable_devices(self):
+        res = [device for device in self.get_all_devices() if self.is_device_usable(device.serial)]
+        log.info("Usable devices: {}".format(res))
         return res
 
     def _flatten_spec(self, d, parent_key='', sep='_'):
