@@ -102,6 +102,10 @@ def parse_args():
              "Optional value: timeout in seconds. "
              "Defaults to 600 if no value was passed"
     )
+    parser.add_argument(
+        "--show-config", default=False, action="store_true",
+        help="Show loaded config",
+    )
     return parser.parse_args()
 
 
@@ -123,6 +127,13 @@ def run():
     except FileNotFoundError:
         log.error("File \"{}\" doesn\'t exist".format(args.config))
         exit(1)
+
+    if args.show_config:
+        log.info("=" * 50)
+        log.info("Config:")
+        for key, value in config.main.items():
+            log.info("{}: {}".format(key, value))
+        log.info("=" * 50)
 
     device_spec = get_spec(config.main.get("device_spec"), args.groups)
 
