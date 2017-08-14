@@ -38,7 +38,8 @@ class STFConnect:
             with_adb=(not bool(connect_and_stop))
         )
         self.connect_and_stop = bool(connect_and_stop)
-        self.connect_timeout = int(connect_and_stop)
+        if self.connect_and_stop:
+            self.connect_timeout = int(connect_and_stop)
         self.connector = STFDevicesConnector(self.client)
         self.watcher = STFConnectedDevicesWatcher(self.client)
 
@@ -47,16 +48,16 @@ class STFConnect:
     def run(self):
         log.info("Starting device connect service...")
         if self.connect_and_stop:
-            self.connect_devices()
+            self._connect_devices()
         else:
-            self.run_forever()
+            self._run_forever()
 
-    def run_forever(self):
+    def _run_forever(self):
         self._start_workers()
         while True:
             time.sleep(1)
 
-    def connect_devices(self):
+    def _connect_devices(self):
         timeout = self.connect_timeout
         start = time.time()
         while time.time() < start + timeout:
