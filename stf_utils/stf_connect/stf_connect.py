@@ -17,30 +17,54 @@ log = logging.getLogger(__name__)
 DEFAULT_CONFIG_PATH = os.path.abspath(os.path.join(os.curdir, "stf-utils.ini"))
 
 
+def register_signal_handler(handler):
+    def exit_gracefully(signum, frame):
+        handler()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, exit_gracefully)
+    signal.signal(signal.SIGTERM, exit_gracefully)
+
+
 class STFConnect:
-    def __init__(self, config, device_spec):
+    def __init__(self, config, device_spec, connect_and_stop=None):
         self.client = SmartphoneTestingFarmClient(
             host=config.main.get("host"),
             common_api_path="/api/v1",
             oauth_token=config.main.get("oauth_token"),
             device_spec=device_spec,
             devices_file_path=config.main.get("devices_file_path"),
-            shutdown_emulator_on_disconnect=config.main.get("shutdown_emulator_on_disconnect")
+            shutdown_emulator_on_disconnect=config.main.get("shutdown_emulator_on_disconnect"),
+            with_adb=(not bool(connect_and_stop))
         )
+        self.connect_and_stop = bool(connect_and_stop)
+        if self.connect_and_stop:
+            self.connect_timeout = int(connect_and_stop)
         self.connector = STFDevicesConnector(self.client)
         self.watcher = STFConnectedDevicesWatcher(self.client)
 
-    def run_forever(self):
+        register_signal_handler(self.stop)
+
+    def run(self):
+        log.info("Starting device connect service...")
+        if self.connect_and_stop:
+            self._connect_devices()
+        else:
+            self._run_forever()
+
+    def _run_forever(self):
         self._start_workers()
         while True:
             time.sleep(1)
 
-    def connect_devices(self, timeout):
+    def _connect_devices(self):
+        timeout = self.connect_timeout
         start = time.time()
         while time.time() < start + timeout:
             if not self.client.all_devices_are_connected:
                 self.client.connect_devices()
             else:
+                log.info("All devices are connected")
                 break
             time.sleep(0.2)
         else:
@@ -105,15 +129,6 @@ def parse_args():
     return parser.parse_args()
 
 
-def register_signal_handler(handler):
-    def exit_gracefully(signum, frame):
-        handler()
-        sys.exit(0)
-
-    signal.signal(signal.SIGINT, exit_gracefully)
-    signal.signal(signal.SIGTERM, exit_gracefully)
-
-
 def run():
     args = parse_args()
     init_console_logging(args.log_level)
@@ -126,15 +141,9 @@ def run():
 
     device_spec = get_spec(config.main.get("device_spec"), args.groups)
 
-    stf_connect = STFConnect(config, device_spec)
+    stf_connect = STFConnect(config, device_spec, args.connect_and_stop)
+    stf_connect.run()
 
-    register_signal_handler(stf_connect.stop)
-
-    log.info("Starting device connect service...")
-    if args.connect_and_stop:
-        stf_connect.connect_devices(args.connect_and_stop)
-    else:
-        stf_connect.run_forever()
 
 if __name__ == "__main__":
     run()
