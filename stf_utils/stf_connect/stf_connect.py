@@ -17,10 +17,10 @@ log = logging.getLogger(__name__)
 DEFAULT_CONFIG_PATH = os.path.abspath(os.path.join(os.curdir, "stf-utils.ini"))
 
 
-def register_signal_handler(handler):
+def register_signal_handler(handler, exit_code=0):
     def exit_gracefully(signum, frame):
         handler()
-        sys.exit(0)
+        sys.exit(exit_code)
 
     signal.signal(signal.SIGINT, exit_gracefully)
     signal.signal(signal.SIGTERM, exit_gracefully)
@@ -43,7 +43,8 @@ class STFConnect:
         self.connector = STFDevicesConnector(self.client)
         self.watcher = STFConnectedDevicesWatcher(self.client)
 
-        register_signal_handler(self.stop)
+        exit_code = 1 if self.connect_and_stop else 0
+        register_signal_handler(self.stop, exit_code)
 
     def run(self):
         log.info("Starting device connect service...")
