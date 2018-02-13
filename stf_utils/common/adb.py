@@ -63,7 +63,7 @@ def echo_ping(device_adb_name):
 
 def shutdown_emulator(connect_url):
     emulator_shell = '-s %s shell' % connect_url
-    shutdown_command = "am start -a android.intent.action.ACTION_REQUEST_SHUTDOWN; stop adbd"
+    shutdown_command = "reboot -p"
     stdout, stderr = _exec_adb(emulator_shell.split() + [shutdown_command])
     log.debug("ADB shutdown emulator %s. Stdout %s. Stderr %s" % (connect_url, stdout, stderr))
 
