@@ -36,7 +36,11 @@ def disconnect(connect_url):
 
 def device_is_ready(device_adb_name):
     state, stderr = get_state(device_adb_name)
-    if state != b'device\n':
+
+    if isinstance(state, bytes):
+        state = state.decode("utf8")
+
+    if "device" not in state:
         log.debug("Device %s isn't ready and his status is %s" % (device_adb_name, state))
         return False
     else:
