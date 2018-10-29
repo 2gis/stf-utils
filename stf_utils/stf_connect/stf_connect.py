@@ -35,7 +35,7 @@ class STFConnect:
             device_spec=device_spec,
             devices_file_path=config.main.get("devices_file_path"),
             shutdown_emulator_on_disconnect=config.main.get("shutdown_emulator_on_disconnect"),
-            with_adb=(not bool(connect_and_stop))
+            with_adb=True
         )
         self.connect_and_stop = bool(connect_and_stop)
         if self.connect_and_stop:
