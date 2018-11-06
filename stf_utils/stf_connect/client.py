@@ -7,6 +7,7 @@ import os
 import time
 import collections
 import logging
+from random import shuffle
 
 from stf_utils.common.stfapi import SmartphoneTestingFarmAPI
 from stf_utils.common import adb
@@ -73,6 +74,7 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
             if actual_amount < wanted_amount:
                 self.all_devices_are_connected = False
                 appropriate_devices = self._filter_devices(self.available_devices, device_group)
+                shuffle(appropriate_devices)
                 devices_to_connect = appropriate_devices[:wanted_amount - actual_amount]
                 self._connect_added_devices(devices_to_connect, device_group)
 
@@ -103,11 +105,10 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         for device in devices_to_add:
             try:
                 log.info("Trying to connect %s from group %s..." % (device, device_group.get("group_name")))
-                if self.is_device_available(device.serial):
-                    self._add_device_to_group(device, device_group)
-                    self._connect_device_to_group(device, device_group)
-                    self._add_device_to_file(device)
-                    log.info("%s was connected and ready for use" % device)
+                self._add_device_to_group(device, device_group)
+                self._connect_device_to_group(device, device_group)
+                self._add_device_to_file(device)
+                log.info("%s was connected and ready for use" % device)
             except Exception:
                 log.exception("Error connecting for %s" % device)
                 self._delete_device_from_group(device, device_group)
@@ -254,13 +255,13 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
 
     @property
     def available_devices(self):
-        res = [device for device in self.get_all_devices() if self.is_device_available(device.serial)]
+        res = list(filter(lambda d: d.present and d.ready and not d.owner, self.get_all_devices()))
         log.info("Available devices for connect: {}".format(res))
         return res
 
     @property
     def usable_devices(self):
-        res = [device for device in self.get_all_devices() if self.is_device_usable(device.serial)]
+        res = list(filter(lambda d: d.present and d.ready, self.get_all_devices()))
         log.info("Usable devices: {}".format(res))
         return res
 
