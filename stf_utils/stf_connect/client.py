@@ -27,10 +27,10 @@ class Device:
         self.__dict__.update(entries)
 
     def __str__(self):
-        return "Device %s(%s)" % (self.serial, self.remote_connect_url)
+        return "%s(%s)" % (self.serial, self.remote_connect_url)
 
     def __repr__(self):
-        return "Device %s(%s)" % (self.serial, self.remote_connect_url)
+        return "%s(%s)" % (self.serial, self.remote_connect_url)
 
 
 class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
@@ -207,9 +207,10 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
             if adb.device_is_ready(device.remote_connect_url):
                 if self.shutdown_emulator_on_disconnect and device.serial.startswith('emulator'):
                     adb.shutdown_emulator(device.remote_connect_url)
-                    log.info("%s has been released" % device)
+                    log.info("Device %s has been shutdown" % device)
                     return
                 else:
+                    log.info("Device %s has been disconnected" % device)
                     adb.disconnect(device.remote_connect_url)
         except Exception:
             log.exception("Error during disconnect by ADB for %s" % device)
@@ -218,9 +219,10 @@ class SmartphoneTestingFarmClient(SmartphoneTestingFarmAPI):
         if self.with_adb:
             self._adb_disconnect(device)
 
-        self.remote_disconnect(device)
-        self.delete_device(device)
-        log.info("%s has been released" % device)
+        if not (self.shutdown_emulator_on_disconnect and device.serial.startswith('emulator')):
+            self.remote_disconnect(device)
+            self.delete_device(device)
+        log.info("Device %s has been released" % device)
 
     def get_all_devices(self):
         try:
