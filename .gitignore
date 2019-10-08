@@ -78,3 +78,7 @@ target/
 .idea/uiDesigner.xml
 
 
+# virtualenv folders
+venv/
+venv2/
+venv3/
