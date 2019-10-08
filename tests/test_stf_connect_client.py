@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from lode_runner import dataprovider
 from unittest import TestCase
+
+from lode_runner import dataprovider
 
 try:
     from mock import patch, Mock
