@@ -23,7 +23,7 @@ setup(
         'six==1.10.0',
         'requests==2.10.0',
         'asyncio==3.4.3',
-        'autobahn==0.13.0',
+        'autobahn==20.12.3',
     ],
     license='MIT',
     description='',
